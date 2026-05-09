@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "post user register with valid data",
+    "description": "Test the POST /user/register endpoint with valid name, email, and password to ensure it creates a new user, returns status 201, and provides a JWT token."
+  },
+  {
+    "id": "TC002",
+    "title": "post user register with existing email",
+    "description": "Test the POST /user/register endpoint with an email that already exists in the system to verify it returns a 409 conflict error indicating the user already exists."
+  },
+  {
+    "id": "TC003",
+    "title": "post user login with valid credentials",
+    "description": "Test the POST /user/login endpoint with valid email and password to confirm it authenticates the user, returns status 200, and provides a JWT token."
+  },
+  {
+    "id": "TC004",
+    "title": "post user login with invalid credentials",
+    "description": "Test the POST /user/login endpoint with invalid email or password to ensure it returns a 401 unauthorized error indicating invalid credentials."
+  },
+  {
+    "id": "TC005",
+    "title": "post blog post with valid jwt and data",
+    "description": "Test the POST /blog/post endpoint with a valid JWT token and valid form-data including title, content, and optional image upload to verify it creates a blog post and returns status 201."
+  },
+  {
+    "id": "TC006",
+    "title": "post blog post without jwt token",
+    "description": "Test the POST /blog/post endpoint without providing a JWT token to confirm it returns a 401 unauthorized error."
+  },
+  {
+    "id": "TC007",
+    "title": "put blog post by author with valid data",
+    "description": "Test the PUT /blog/post/{id} endpoint with a valid JWT token from the post author and updated form-data fields to ensure the blog post is updated and returns status 200."
+  },
+  {
+    "id": "TC008",
+    "title": "put blog post by non author user",
+    "description": "Test the PUT /blog/post/{id} endpoint with a valid JWT token from a user who is not the author to verify it returns a 403 forbidden error."
+  },
+  {
+    "id": "TC009",
+    "title": "delete blog post by author or admin",
+    "description": "Test the DELETE /blog/post/{id} endpoint with a valid JWT token from the post author or an admin user to confirm the blog post is deleted and returns status 200."
+  },
+  {
+    "id": "TC010",
+    "title": "get api docs swagger ui page",
+    "description": "Test the GET /api-docs endpoint to ensure it returns status 200 and serves the interactive Swagger UI page with documented API endpoints."
+  }
+]

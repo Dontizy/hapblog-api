@@ -1,0 +1,19 @@
+{
+  "status": "commited",
+  "type": "backend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:8000",
+  "backendAuthType": "Bearer token",
+  "backendCredential": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZmUxMTBiY2IxZjRmMzdiNjQzMGMyYSIsImlhdCI6MTc3ODMzMDE4OSwiZXhwIjoxNzc4NDE2NTg5fQ.-22q79VOu-ez0qdL-hrwmIROyI6fDA3p0Fzaf5140w8",
+  "executionArgs": {
+    "projectName": "blog-api",
+    "projectPath": "/home/nelson/Documents/express-app/blog-api",
+    "testIds": [],
+    "additionalInstruction": "Use OpenAPI at http://localhost:8000/api-docs for backend tests. Prioritize auth, negative-path, and schema validation for /user and /blog endpoints.",
+    "serverMode": "development",
+    "envs": {
+      "API_KEY": "sk-user--T47nIZ5WFgeCcUW7S_bmcPbjWbC661fhWVwfMHd_uuhe8_6F-s3JHjujxXz5YqIQkveP3St43GaocXgQArCJLomBACWjvFrEwjdBpkNPxJufJYyW2Olc_UtRNjzjLrUoX8"
+    }
+  },
+  "serverPort": 44351
+}

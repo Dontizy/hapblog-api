@@ -1,0 +1,136 @@
+version: "2"
+type: backend
+tech_stack:
+  - TypeScript
+  - Express.js
+  - MongoDB (Mongoose)
+  - JWT
+  - Multer
+  - Swagger (OpenAPI)
+features:
+  - name: User Authentication
+    description: User registration and login with JWT token issuance.
+    files:
+      - src/routes/userRoutes.ts
+      - src/controllers/userController.ts
+      - src/models/User.ts
+    endpoints:
+      - method: POST
+        path: /user/register
+        description: Register a new user account.
+        auth_required: false
+        request_schema:
+          body:
+            name: string
+            email: string
+            password: string
+        response_schema:
+          "201": "{ user, token }"
+          "400": "Validation error"
+          "409": "User already exists"
+      - method: POST
+        path: /user/login
+        description: Authenticate an existing user and return JWT.
+        auth_required: false
+        request_schema:
+          body:
+            email: string
+            password: string
+        response_schema:
+          "200": "{ user, token }"
+          "400": "Validation error"
+          "401": "Invalid credentials"
+    depends_on:
+      - MongoDB connection
+      - JWT secret in environment variables
+
+  - name: Blog Post Management
+    description: Create, read, update, and delete blog posts with role/author authorization.
+    files:
+      - src/routes/blogRoutes.ts
+      - src/controllers/blogController.ts
+      - src/models/Blog.ts
+      - src/middleware/authMiddleware.ts
+      - src/middleware/authorizedUser.ts
+      - src/utils/uploader.ts
+    endpoints:
+      - method: POST
+        path: /blog/post
+        description: Create a blog post with optional image upload.
+        auth_required: true
+        request_schema:
+          form-data:
+            title: string
+            content: string
+            image: binary
+        response_schema:
+          "201": "Created blog post"
+          "400": "Invalid request"
+          "401": "Unauthorized"
+      - method: GET
+        path: /blog/posts
+        description: Fetch all blog posts.
+        auth_required: false
+        response_schema:
+          "200": "List of blog posts"
+      - method: GET
+        path: /blog/post/{id}
+        description: Fetch a single blog post by ID.
+        auth_required: false
+        response_schema:
+          "200": "Blog post"
+          "404": "Blog post not found"
+      - method: PUT
+        path: /blog/post/{id}
+        description: Update a blog post by ID (author/admin only).
+        auth_required: true
+        request_schema:
+          form-data:
+            title: string
+            content: string
+            imageUrl: binary
+        response_schema:
+          "200": "Updated blog post"
+          "401": "Unauthorized"
+          "403": "Forbidden"
+          "404": "Blog post not found"
+      - method: DELETE
+        path: /blog/post/{id}
+        description: Delete a blog post by ID (author/admin only).
+        auth_required: true
+        response_schema:
+          "200": "Deleted blog post"
+          "401": "Unauthorized"
+          "403": "Forbidden"
+          "404": "Blog post not found"
+    depends_on:
+      - Authentication middleware
+      - Authorization middleware
+      - Multer file upload
+
+  - name: API Documentation
+    description: Swagger UI endpoint serving OpenAPI docs generated from route annotations.
+    files:
+      - src/config/swagger.ts
+      - src/index.ts
+    endpoints:
+      - method: GET
+        path: /api-docs
+        description: View interactive API documentation.
+        auth_required: false
+        response_schema:
+          "200": "Swagger UI page"
+    depends_on:
+      - swagger-jsdoc
+      - swagger-ui-express
+
+known_limitations:
+  - issue: Login lookup does not normalize email case before querying.
+    location: src/controllers/userController.ts
+    impact: Users can fail to log in when email casing differs from stored lowercase value.
+  - issue: No automated unit/integration test suite configured in package scripts.
+    location: package.json
+    impact: Regressions are harder to catch before deployment.
+  - issue: Database config throws message for MONGO_URI while reading DB_URI.
+    location: src/config/database.ts
+    impact: Misleading setup/debugging information for environment configuration.
