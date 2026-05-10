@@ -2,3 +2,5 @@
 node_modules
 dist
 src/utils/test-sprite-apikey
+temp
+testsprite_tests
