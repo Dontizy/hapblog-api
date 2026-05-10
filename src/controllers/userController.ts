@@ -5,6 +5,8 @@ import { registerType, loginType } from '../types/userTypes.js';
 import { User } from '../models/User.js'
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { AppError } from '../utils/AppError.js';
+import mongoose from 'mongoose';
+import Blog from '../models/Blog.js';
 
 const hashPassword = async (plainPassword: string) => {
     const salt = await bcrypt.genSalt(10);
@@ -54,4 +56,65 @@ export const login = asyncHandler(async (req: Request<{}, {}, loginType>, res: R
     }
     const token = jwt.sign({ id: String(user._id) }, secret, { expiresIn: '1d' })
     return res.status(200).json({ user: { id: user._id, name: user.name, email: user.email, role: user.role }, token })
+})
+
+export const allUsers = asyncHandler(async (req: Request, res: Response) => {
+    const users = await User.find().sort({ createdAt: -1 })
+    return res.status(200).json({
+        success: true,
+        users
+    })
+})
+
+
+export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string }
+    if (!mongoose.isValidObjectId(id)) {
+        throw new AppError('Invalid user id', 400)
+    }
+    const user = await User.findById(id)
+    if (!user) {
+        throw new AppError("User not found", 404)
+    }
+    await Blog.deleteMany({ author: user._id })
+    await User.findByIdAndDelete(id)
+    return res.status(200).json({
+        success: true,
+        message: "User and associated blogs deleted successfully",
+    })
+})
+
+
+export const changePassword = asyncHandler(async (req: Request<{}, {}, { newPassword: string, oldPassword: string }>, res: Response) => {
+    const id = req.user?._id;
+    const { newPassword, oldPassword } = req.body
+
+    if (!id) {
+        throw new AppError("Not authorized", 401);
+    }
+
+    if (!mongoose.isValidObjectId(id)) {
+        throw new AppError("Invalid user id", 400)
+    }
+    const user = await User.findById(id)
+    if (!user) {
+        throw new AppError("User does not exist", 404)
+    }
+    if (!oldPassword || !newPassword) {
+        throw new AppError("All fields are required", 400);
+    }
+    const isMatch = await bcrypt.compare(oldPassword, user.password)
+    if (!isMatch) {
+        throw new AppError('Incorrect old password!', 403)
+    }
+    const samePassword = await bcrypt.compare(newPassword, user.password)
+    if (samePassword) {
+        throw new AppError(
+            "New password must be different",
+            400
+        );
+    }
+    user.password = await hashPassword(newPassword)
+    await user.save()
+    res.status(200).json({ success: true, message: 'Password updated' })
 })

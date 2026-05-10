@@ -5,6 +5,9 @@ import { AppError } from "../utils/AppError.js";
 import { blogCreateType, updateBlogType } from "../types/blogTypes.js";
 import { CreateBlogDTO } from "../dto/BlogData.dto.js";
 import mongoose from "mongoose";
+import uploadToCloudinary from "../utils/uploadToCloudinary.js";
+import { UploadApiResponse } from "cloudinary";
+
 
 export const createBlogPost = asyncHandler(async (req: Request<{}, {}, blogCreateType>, res: Response) => {
 
@@ -20,7 +23,9 @@ export const createBlogPost = asyncHandler(async (req: Request<{}, {}, blogCreat
     const blogData: CreateBlogDTO = { title, content, author: userId }
 
     if (req.file) {
-        blogData.imageUrl = `/uploads/${req.file.filename}`
+        const upload = await uploadToCloudinary(req.file) as UploadApiResponse;
+        blogData.imageUrl = upload.secure_url;
+        //`/uploads/${req.file.filename}`
     }
     const blog = await Blog.create(blogData)
     res.status(201).json({
@@ -68,14 +73,13 @@ export const updateBlogPost = asyncHandler(async (req: Request<{}, {}, updateBlo
         blog.content = content
     }
     if (req.file) {
-        blog.imageUrl = `/uploads/${req.file.filename}`
+        const upload = await uploadToCloudinary(req.file) as UploadApiResponse;
+        blog.imageUrl = upload.secure_url;
     }
     await blog.save()
-    const updatedBlog = blog.toObject()
     return res.status(200).json({
-        ...updatedBlog,
         success: true,
-        blog: updatedBlog
+        blog
     })
 })
 

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { createBlogPost, getAllBlogPost, getBlogPost, updateBlogPost, deleteBlogPost } from "../controllers/blogController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { upload } from "../utils/uploader.js";
-import { isAuthor } from "../middleware/authorizedUser.js";
+import { isAuthorized } from "../middleware/authorizedUser.js";
 
 const router = Router()
 /**
@@ -128,7 +128,7 @@ router.get('/post/:id', getBlogPost)
  *       403:
  *         description: Action denied, only author and admin allowed
  */
-router.put('/post/:id', protect, isAuthor, upload.single("imageUrl"), updateBlogPost)
+router.put('/post/:id', protect, isAuthorized, upload.single("image"), updateBlogPost)
 
 /**
  * @openapi
@@ -158,7 +158,7 @@ router.put('/post/:id', protect, isAuthor, upload.single("imageUrl"), updateBlog
  *         description: Action denied, only author and admin allowed
  * 
  */
-router.delete('/post/:id', protect, isAuthor, deleteBlogPost)
+router.delete('/post/:id', protect, isAuthorized, deleteBlogPost)
 
 
 export default router;
