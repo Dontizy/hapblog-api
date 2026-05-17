@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {register,login, deleteUser, allUsers, changePassword} from '../controllers/userController.js'
+import {register,login, deleteUser, allUsers, changePassword, addOrRemoveAdmin} from '../controllers/userController.js'
 import { protect } from "../middleware/authMiddleware.js";
 import { isAdmin } from "../middleware/authorizedUser.js";
 
@@ -167,5 +167,29 @@ router.get('/all', protect, isAdmin, allUsers)
  */
 router.put('/password/update', protect, changePassword)
 
-
+/**
+ * @swagger
+ * /user/admin/{id}:
+ *   patch:
+ *     summary: Add or remove admin role
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User role updated successfully
+ *       400:
+ *         description: Invalid user ID
+ *       404:
+ *         description: User not found
+ */
+ router.patch("/admin/:id", protect, isAdmin, addOrRemoveAdmin)
 export default router

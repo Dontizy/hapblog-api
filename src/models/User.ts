@@ -32,7 +32,7 @@ const userSchema = new Schema<IUser>({
         required:[true, "Please enter your password"],
         trim:true,
         minlength:5,
-        // select:false
+        select:false
     }
 },{
     timestamps:true

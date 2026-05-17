@@ -42,7 +42,7 @@ export const login = asyncHandler(async (req: Request<{}, {}, loginType>, res: R
         throw new AppError("Invalid credentials: email and password are required", 400)
     }
     const emailLowercase = email.trim().toLowerCase();
-    const user = await User.findOne({ email: emailLowercase })
+    const user = await User.findOne({ email: emailLowercase }).select("+password")
     if (!user) {
         throw new AppError("Invalid credentials", 401)
     }
@@ -96,7 +96,7 @@ export const changePassword = asyncHandler(async (req: Request<{}, {}, { newPass
     if (!mongoose.isValidObjectId(id)) {
         throw new AppError("Invalid user id", 400)
     }
-    const user = await User.findById(id)
+    const user = await User.findById(id).select("+password")
     if (!user) {
         throw new AppError("User does not exist", 404)
     }
@@ -118,3 +118,30 @@ export const changePassword = asyncHandler(async (req: Request<{}, {}, { newPass
     await user.save()
     res.status(200).json({ success: true, message: 'Password updated' })
 })
+
+export const addOrRemoveAdmin = asyncHandler(async(req:Request, res:Response)=>{
+  const {id} = req.params as { id:string}
+  if(!mongoose.isValidObjectId(id)){
+    throw new AppError("Invalid user ID",400)
+  }
+  const user = await User.findById(id)
+  
+  if(!user){
+    throw new AppError("User not found", 404)
+  }
+  if(req.user?._id.toString() === id){
+    throw new AppError("You cannot change your own role", 403)
+  }
+  if(user.role === "user"){
+    user.role = "admin"
+  }else{
+    user.role = "user"
+  }
+  await user.save()
+return res.status(200).json({
+  success:true,
+  user,
+  role:user.role
+})
+})
+
