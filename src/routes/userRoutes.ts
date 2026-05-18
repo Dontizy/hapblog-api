@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {register,login, deleteUser, allUsers, changePassword, addOrRemoveAdmin} from '../controllers/userController.js'
+import {register,login, deleteUser, allUsers, changePassword, addOrRemoveAdmin, userProfile} from '../controllers/userController.js'
 import { protect } from "../middleware/authMiddleware.js";
 import { isAdmin } from "../middleware/authorizedUser.js";
 
@@ -192,4 +192,21 @@ router.put('/password/update', protect, changePassword)
  *         description: User not found
  */
  router.patch("/admin/:id", protect, isAdmin, addOrRemoveAdmin)
+ /**
+ * @swagger
+ * /user/profile:
+ *   get:
+ *     summary: Get current user profile
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile fetched successfully
+ *       404:
+ *         description: User not found
+ */
+ router.get("/profile", protect, userProfile)
+ 
 export default router

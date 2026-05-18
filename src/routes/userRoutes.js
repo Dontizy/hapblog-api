@@ -183,4 +183,20 @@ router.put('/password/update', authMiddleware_js_1.protect, userController_js_1.
  *         description: User not found
  */
 router.patch("/admin/:id", authMiddleware_js_1.protect, authorizedUser_js_1.isAdmin, userController_js_1.addOrRemoveAdmin);
+/**
+* @swagger
+* /user/profile:
+*   get:
+*     summary: Get current user profile
+*     tags:
+*       - Users
+*     security:
+*       - bearerAuth: []
+*     responses:
+*       200:
+*         description: User profile fetched successfully
+*       404:
+*         description: User not found
+*/
+router.get("/profile", authMiddleware_js_1.protect, userController_js_1.userProfile);
 exports.default = router;

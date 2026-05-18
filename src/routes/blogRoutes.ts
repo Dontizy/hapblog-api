@@ -160,6 +160,5 @@ router.put('/post/:id', protect, isAuthorized, upload.single("image"), updateBlo
  */
 router.delete('/post/:id', protect, isAuthorized, deleteBlogPost)
 
-
 export default router;
 

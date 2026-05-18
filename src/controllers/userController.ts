@@ -145,3 +145,16 @@ return res.status(200).json({
 })
 })
 
+export const userProfile = asyncHandler(async(req:Request, res:Response)=>{
+  const user = req.user
+  if(!user){
+    throw new AppError("User not found", 404)
+  }
+  const userData ={
+    id:user._id,
+    name:user.name,
+    email:user.email,
+   // avatar:user.avatar
+  }
+  return res.status(200).json({user:userData})
+})

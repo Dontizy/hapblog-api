@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addOrRemoveAdmin = exports.changePassword = exports.deleteUser = exports.allUsers = exports.login = exports.register = void 0;
+exports.userProfile = exports.addOrRemoveAdmin = exports.changePassword = exports.deleteUser = exports.allUsers = exports.login = exports.register = void 0;
 var jsonwebtoken_1 = require("jsonwebtoken");
 var bcryptjs_1 = require("bcryptjs");
 var User_js_1 = require("../models/User.js");
@@ -247,5 +247,21 @@ exports.addOrRemoveAdmin = (0, asyncHandler_js_1.asyncHandler)(function (req, re
                         role: user.role
                     })];
         }
+    });
+}); });
+exports.userProfile = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var user, userData;
+    return __generator(this, function (_a) {
+        user = req.user;
+        if (!user) {
+            throw new AppError_js_1.AppError("User not found", 404);
+        }
+        userData = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            // avatar:user.avatar
+        };
+        return [2 /*return*/, res.status(200).json({ user: userData })];
     });
 }); });
