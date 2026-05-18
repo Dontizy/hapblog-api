@@ -4,7 +4,10 @@ export interface IUser {
     name:string;
     email:string;
     role:'user' | 'admin';
+    avatar?:string;
+    avatarPublicId?:string;
     password:string;
+  
 }
 
 export type UserDocument = HydratedDocument<IUser>;
@@ -26,6 +29,14 @@ const userSchema = new Schema<IUser>({
         type:String,
         enum:["user","admin"],
         default:'user'
+    },
+    avatar:{
+      type:String,
+      required:false,
+      default:"https://res.cloudinary.com/dxdtdqxse/image/upload/v1778510804/ChatGPT_Image_May_11_2026_03_45_21_PM_zxd9oh.png"
+    },
+    avatarPublicId: {
+      type: String,
     },
     password:{
         type:String,

@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import express from "express";
-dotenv.config()
+import "dotenv/config";
 import { connectDB } from './config/database.js';
 import userRoute from './routes/userRoutes.js';
 import blogRoute from './routes/blogRoutes.js'

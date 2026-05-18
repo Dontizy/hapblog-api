@@ -7,6 +7,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { AppError } from '../utils/AppError.js';
 import mongoose from 'mongoose';
 import Blog from '../models/Blog.js';
+import uploadToCloudinary from "../utils/uploadToCloudinary.js";
+import { UploadApiResponse } from "cloudinary";
 
 const hashPassword = async (plainPassword: string) => {
     const salt = await bcrypt.genSalt(10);
@@ -157,4 +159,31 @@ export const userProfile = asyncHandler(async(req:Request, res:Response)=>{
    // avatar:user.avatar
   }
   return res.status(200).json({user:userData})
+})
+
+export const avatarUpdate = asyncHandler(async(req:Request, res:Response)=>{
+  const id =req.user?._id
+  if(!mongoose.isValidObjectId(id)){
+    throw new AppError("Invalid user ID", 400)
+  }
+  const user = await User.findById(id)
+  if(!user){
+    throw new AppError("User not found", 404)
+  }
+  
+  if (!req.file) {
+      throw new AppError("Please upload an image", 400);
+    }
+if (user.avatarPublicId) {
+      await cloudinary.uploader.destroy(user.avatarPublicId);
+    }
+    const upload = (await uploadToCloudinary(req.file)) as UploadApiResponse;
+    user.avatar = upload.secure_url;
+    user.avatarPublicId = upload.public_id;
+
+  await user.save();
+  return res.status(200).json({
+    success:true,
+    user
+  })
 })
