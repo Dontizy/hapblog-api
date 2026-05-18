@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userProfile = exports.addOrRemoveAdmin = exports.changePassword = exports.deleteUser = exports.allUsers = exports.login = exports.register = void 0;
+exports.avatarUpdate = exports.userProfile = exports.addOrRemoveAdmin = exports.changePassword = exports.deleteUser = exports.allUsers = exports.login = exports.register = void 0;
 var jsonwebtoken_1 = require("jsonwebtoken");
 var bcryptjs_1 = require("bcryptjs");
 var User_js_1 = require("../models/User.js");
@@ -44,6 +44,7 @@ var asyncHandler_js_1 = require("../utils/asyncHandler.js");
 var AppError_js_1 = require("../utils/AppError.js");
 var mongoose_1 = require("mongoose");
 var Blog_js_1 = require("../models/Blog.js");
+var uploadToCloudinary_js_1 = require("../utils/uploadToCloudinary.js");
 var hashPassword = function (plainPassword) { return __awaiter(void 0, void 0, void 0, function () {
     var salt;
     return __generator(this, function (_a) {
@@ -260,8 +261,48 @@ exports.userProfile = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { 
             id: user._id,
             name: user.name,
             email: user.email,
-            // avatar:user.avatar
+            role: user.role,
+            avatar: user.avatar
         };
         return [2 /*return*/, res.status(200).json({ user: userData })];
+    });
+}); });
+exports.avatarUpdate = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var id, user, upload;
+    var _a;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+                if (!mongoose_1.default.isValidObjectId(id)) {
+                    throw new AppError_js_1.AppError("Invalid user ID", 400);
+                }
+                return [4 /*yield*/, User_js_1.User.findById(id)];
+            case 1:
+                user = _b.sent();
+                if (!user) {
+                    throw new AppError_js_1.AppError("User not found", 404);
+                }
+                if (!req.file) {
+                    throw new AppError_js_1.AppError("Please upload an image", 400);
+                }
+                if (!user.avatarPublicId) return [3 /*break*/, 3];
+                return [4 /*yield*/, cloudinary.uploader.destroy(user.avatarPublicId)];
+            case 2:
+                _b.sent();
+                _b.label = 3;
+            case 3: return [4 /*yield*/, (0, uploadToCloudinary_js_1.default)(req.file)];
+            case 4:
+                upload = (_b.sent());
+                user.avatar = upload.secure_url;
+                user.avatarPublicId = upload.public_id;
+                return [4 /*yield*/, user.save()];
+            case 5:
+                _b.sent();
+                return [2 /*return*/, res.status(200).json({
+                        success: true,
+                        user: user
+                    })];
+        }
     });
 }); });

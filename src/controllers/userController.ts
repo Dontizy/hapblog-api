@@ -156,7 +156,8 @@ export const userProfile = asyncHandler(async(req:Request, res:Response)=>{
     id:user._id,
     name:user.name,
     email:user.email,
-   // avatar:user.avatar
+    role:user.role,
+    avatar:user.avatar
   }
   return res.status(200).json({user:userData})
 })

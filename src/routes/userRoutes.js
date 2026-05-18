@@ -4,6 +4,7 @@ var express_1 = require("express");
 var userController_js_1 = require("../controllers/userController.js");
 var authMiddleware_js_1 = require("../middleware/authMiddleware.js");
 var authorizedUser_js_1 = require("../middleware/authorizedUser.js");
+var uploader_ts_1 = require("../utils/uploader.ts");
 var router = (0, express_1.Router)();
 /**
  * @openapi
@@ -199,4 +200,34 @@ router.patch("/admin/:id", authMiddleware_js_1.protect, authorizedUser_js_1.isAd
 *         description: User not found
 */
 router.get("/profile", authMiddleware_js_1.protect, userController_js_1.userProfile);
+/**
+* @swagger
+* /user/avatar:
+*   patch:
+*     summary: Update user avatar
+*     tags:
+*       - Users
+*     security:
+*       - bearerAuth: []
+*     requestBody:
+*       required: true
+*       content:
+*         multipart/form-data:
+*           schema:
+*             type: object
+*             properties:
+*               avatar:
+*                 type: string
+*                 format: binary
+*     responses:
+*       200:
+*         description: Avatar updated successfully
+*       400:
+*         description: Bad request
+*       401:
+*         description: Unauthorized
+*       404:
+*         description: User not found
+*/
+router.patch("/avatar", authMiddleware_js_1.protect, uploader_ts_1.upload.single("avatar"), userController_js_1.avatarUpdate);
 exports.default = router;

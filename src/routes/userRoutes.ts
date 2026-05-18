@@ -1,8 +1,8 @@
 import { Router } from "express";
-import {register,login, deleteUser, allUsers, changePassword, addOrRemoveAdmin, userProfile} from '../controllers/userController.js'
+import {register,login, deleteUser, allUsers, changePassword, addOrRemoveAdmin, userProfile, avatarUpdate} from '../controllers/userController.js'
 import { protect } from "../middleware/authMiddleware.js";
 import { isAdmin } from "../middleware/authorizedUser.js";
-
+import {upload} from "../utils/uploader.ts"
 
 
 const router = Router();
@@ -208,5 +208,35 @@ router.put('/password/update', protect, changePassword)
  *         description: User not found
  */
  router.get("/profile", protect, userProfile)
+ /**
+ * @swagger
+ * /user/avatar:
+ *   patch:
+ *     summary: Update user avatar
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Avatar updated successfully
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
+ router.patch("/avatar", protect, upload.single("avatar"), avatarUpdate)
  
 export default router
