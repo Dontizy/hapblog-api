@@ -1,12 +1,13 @@
 import dotenv from 'dotenv';
 import express from "express";
-import "dotenv/config";
+dotenv.config()
 import { connectDB } from './config/database.js';
 import userRoute from './routes/userRoutes.js';
 import blogRoute from './routes/blogRoutes.js'
 import swaggerUi from 'swagger-ui-express'
 import { swaggerSpec } from './config/swagger.js';
 import errorHandler from './middleware/errorHandlerMiddleWare.js';
+import commentRoute from "./routes/commentRoute.js"
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use(express.urlencoded({extended:true}))
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 app.use('/user', userRoute)
 app.use('/blog', blogRoute)
+app.use('/blog', commentRoute)
 app.use(errorHandler)
 
 app.get("/",(req, res)=>{

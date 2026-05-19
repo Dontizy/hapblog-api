@@ -7,11 +7,11 @@ import mongoose from 'mongoose';
 export const isAuthorized = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params as { id: string }
     if (!mongoose.isValidObjectId(id)) {
-        throw new AppError('Invalid blog id', 400)
+        throw new AppError('Invalid blog post id', 400)
     }
     const blog = await Blog.findById(id)
     if (!blog) {
-        throw new AppError('Post not found', 404)
+        throw new AppError('Blog post not found', 404)
     }
     const user = req.user?._id
     if (!user) {

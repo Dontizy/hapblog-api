@@ -36,50 +36,48 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var dotenv_1 = require("dotenv");
-var express_1 = require("express");
-dotenv_1.default.config();
-var database_js_1 = require("./config/database.js");
-var userRoutes_js_1 = require("./routes/userRoutes.js");
-var blogRoutes_js_1 = require("./routes/blogRoutes.js");
-var swagger_ui_express_1 = require("swagger-ui-express");
-var swagger_js_1 = require("./config/swagger.js");
-var errorHandlerMiddleWare_js_1 = require("./middleware/errorHandlerMiddleWare.js");
-var commentRoute_js_1 = require("./routes/commentRoute.js");
-var app = (0, express_1.default)();
-var port = Number(process.env.PORT) || 3000;
-app.use(express_1.default.json());
-app.use(express_1.default.urlencoded({ extended: true }));
-app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_js_1.swaggerSpec));
-app.use('/user', userRoutes_js_1.default);
-app.use('/blog', blogRoutes_js_1.default);
-app.use('/blog', commentRoute_js_1.default);
-app.use(errorHandlerMiddleWare_js_1.default);
-app.get("/", function (req, res) {
-    res.send("Welcome To Hapblog");
-});
-var startServer = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var server, err_1;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+exports.createComment = void 0;
+var mongoose_1 = require("mongoose");
+var asyncHandler_js_1 = require("../utils/asyncHandler.js");
+var AppError_js_1 = require("../utils/AppError.js");
+var Blog_js_1 = require("../models/Blog.js");
+var Comment_js_1 = require("../models/Comment.js");
+exports.createComment = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var body, id, userId, blog, comment;
+    var _a;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
             case 0:
-                _a.trys.push([0, 2, , 3]);
-                return [4 /*yield*/, (0, database_js_1.connectDB)()];
+                body = req.body.body;
+                id = req.params.id;
+                if (!(body === null || body === void 0 ? void 0 : body.trim())) {
+                    throw new AppError_js_1.AppError("Comment body can't be empty", 400);
+                }
+                userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+                if (!mongoose_1.default.isValidObjectId(userId)) {
+                    throw new AppError_js_1.AppError("Invalid user ID", 400);
+                }
+                if (!mongoose_1.default.isValidObjectId(id)) {
+                    throw new AppError_js_1.AppError("Invalid blog ID");
+                }
+                return [4 /*yield*/, Blog_js_1.default.findById(id)];
             case 1:
-                _a.sent();
-                server = app.listen(port, function () { return console.log("Server running @ http://localhost:".concat(port)); });
-                server.on("error", function (err) {
-                    console.error("Server error:", err);
-                    process.exit(1);
-                });
-                return [3 /*break*/, 3];
+                blog = _b.sent();
+                if (!blog) {
+                    throw new AppError_js_1.AppError("Blog post not found", 404);
+                }
+                return [4 /*yield*/, Comment_js_1.default.create({
+                        author: userId,
+                        blog: blog._id,
+                        body: body.trim()
+                    })];
             case 2:
-                err_1 = _a.sent();
-                console.error("Startup error:", err_1);
-                process.exit(1);
-                return [3 /*break*/, 3];
-            case 3: return [2 /*return*/];
+                comment = _b.sent();
+                return [2 /*return*/, res.status(201).json({
+                        success: true,
+                        message: "Comment created successfully",
+                        comment: comment
+                    })];
         }
     });
-}); };
-startServer();
+}); });

@@ -19,12 +19,14 @@ export const commentSchema = new Schema<IComment>({
   },
   body:{
     type:String,
-    required:[true, "Comment body can't be empty"]
+    required:[true, "Comment body can't be empty"],
+    trim:true
   },
   blog:{
-    type:mongoose.Types.ObjectId,
+    type:Schema.Types.ObjectId,
     required:true,
-    ref:"Blog"
+    ref:"Blog",
+    index:true
   }
 },{
   timestamps:true

@@ -36,50 +36,50 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var dotenv_1 = require("dotenv");
-var express_1 = require("express");
-dotenv_1.default.config();
-var database_js_1 = require("./config/database.js");
-var userRoutes_js_1 = require("./routes/userRoutes.js");
-var blogRoutes_js_1 = require("./routes/blogRoutes.js");
-var swagger_ui_express_1 = require("swagger-ui-express");
-var swagger_js_1 = require("./config/swagger.js");
-var errorHandlerMiddleWare_js_1 = require("./middleware/errorHandlerMiddleWare.js");
-var commentRoute_js_1 = require("./routes/commentRoute.js");
-var app = (0, express_1.default)();
-var port = Number(process.env.PORT) || 3000;
-app.use(express_1.default.json());
-app.use(express_1.default.urlencoded({ extended: true }));
-app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_js_1.swaggerSpec));
-app.use('/user', userRoutes_js_1.default);
-app.use('/blog', blogRoutes_js_1.default);
-app.use('/blog', commentRoute_js_1.default);
-app.use(errorHandlerMiddleWare_js_1.default);
-app.get("/", function (req, res) {
-    res.send("Welcome To Hapblog");
-});
-var startServer = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var server, err_1;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+exports.isAdmin = exports.isAuthorized = void 0;
+var Blog_js_1 = require("../models/Blog.js");
+var asyncHandler_js_1 = require("../utils/asyncHandler.js");
+var AppError_js_1 = require("../utils/AppError.js");
+var mongoose_1 = require("mongoose");
+exports.isAuthorized = (0, asyncHandler_js_1.asyncHandler)(function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
+    var id, blog, user, role;
+    var _a, _b;
+    return __generator(this, function (_c) {
+        switch (_c.label) {
             case 0:
-                _a.trys.push([0, 2, , 3]);
-                return [4 /*yield*/, (0, database_js_1.connectDB)()];
+                id = req.params.id;
+                if (!mongoose_1.default.isValidObjectId(id)) {
+                    throw new AppError_js_1.AppError('Invalid blog post id', 400);
+                }
+                return [4 /*yield*/, Blog_js_1.default.findById(id)];
             case 1:
-                _a.sent();
-                server = app.listen(port, function () { return console.log("Server running @ http://localhost:".concat(port)); });
-                server.on("error", function (err) {
-                    console.error("Server error:", err);
-                    process.exit(1);
-                });
-                return [3 /*break*/, 3];
-            case 2:
-                err_1 = _a.sent();
-                console.error("Startup error:", err_1);
-                process.exit(1);
-                return [3 /*break*/, 3];
-            case 3: return [2 /*return*/];
+                blog = _c.sent();
+                if (!blog) {
+                    throw new AppError_js_1.AppError('Blog post not found', 404);
+                }
+                user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+                if (!user) {
+                    throw new AppError_js_1.AppError('Not authorized', 401);
+                }
+                role = (_b = req.user) === null || _b === void 0 ? void 0 : _b.role;
+                if (String(blog.author) !== String(user) && role !== "admin") {
+                    throw new AppError_js_1.AppError('Action denied, only author and admin allowed', 403);
+                }
+                next();
+                return [2 /*return*/];
         }
     });
-}); };
-startServer();
+}); });
+exports.isAdmin = (0, asyncHandler_js_1.asyncHandler)(function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
+    var _a;
+    return __generator(this, function (_b) {
+        if (!req.user) {
+            throw new AppError_js_1.AppError('Not authorized', 401);
+        }
+        if (((_a = req.user) === null || _a === void 0 ? void 0 : _a.role) !== "admin") {
+            throw new AppError_js_1.AppError('Action denied, only is admin allowed', 403);
+        }
+        next();
+        return [2 /*return*/];
+    });
+}); });
