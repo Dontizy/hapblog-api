@@ -44,29 +44,29 @@ var mongoose_1 = require("mongoose");
 var uploadToCloudinary_js_1 = require("../utils/uploadToCloudinary.js");
 var Comment_js_1 = require("../models/Comment.js");
 exports.createBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, title, content, userId, blogData, upload, blog;
-    var _b;
-    return __generator(this, function (_c) {
-        switch (_c.label) {
+    var _a, title, content, user, userId, blogData, upload, blog;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
             case 0:
                 _a = req.body, title = _a.title, content = _a.content;
                 if (!title || !content) {
                     throw new AppError_js_1.AppError("Title and Content can't be empty!", 400);
                 }
-                userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
-                if (!userId) {
-                    throw new AppError_js_1.AppError('Unauthorized', 401);
+                user = req.user;
+                if (!user) {
+                    throw new AppError_js_1.AppError("Not authorized", 401);
                 }
+                userId = user._id;
                 blogData = { title: title, content: content, author: userId };
                 if (!req.file) return [3 /*break*/, 2];
                 return [4 /*yield*/, (0, uploadToCloudinary_js_1.default)(req.file)];
             case 1:
-                upload = _c.sent();
+                upload = _b.sent();
                 blogData.imageUrl = upload.secure_url;
-                _c.label = 2;
+                _b.label = 2;
             case 2: return [4 /*yield*/, Blog_js_1.default.create(blogData)];
             case 3:
-                blog = _c.sent();
+                blog = _b.sent();
                 res.status(201).json({
                     success: true,
                     blog: blog
@@ -174,12 +174,16 @@ exports.deleteBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res)
     });
 }); });
 exports.toggleLikePost = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var id, userId, blog, alreadyLiked;
+    var id, user, userId, blog, alreadyLiked;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 id = req.params.id;
-                userId = req.user._id;
+                user = req.user;
+                if (!user) {
+                    throw new AppError_js_1.AppError("Not authorized ", 401);
+                }
+                userId = user._id;
                 if (!mongoose_1.default.isValidObjectId(id)) {
                     throw new AppError_js_1.AppError("Invalid blog post ID", 400);
                 }

@@ -43,14 +43,14 @@ var AppError_js_1 = require("../utils/AppError.js");
 var Blog_js_1 = require("../models/Blog.js");
 var Comment_js_1 = require("../models/Comment.js");
 exports.createComment = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var body, id, userId, blog, comment;
-    var _a;
-    return __generator(this, function (_b) {
-        switch (_b.label) {
+    var body, id, user, userId, blog, comment;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
             case 0:
                 body = req.body.body;
                 id = req.params.id;
-                userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+                user = req.user;
+                userId = user._id;
                 if (!(body === null || body === void 0 ? void 0 : body.trim())) {
                     throw new AppError_js_1.AppError("Comment body can't be empty", 400);
                 }
@@ -60,12 +60,12 @@ exports.createComment = (0, asyncHandler_js_1.asyncHandler)(function (req, res) 
                 if (!mongoose_1.default.isValidObjectId(id)) {
                     throw new AppError_js_1.AppError("Invalid blog ID", 400);
                 }
-                if (!userId) {
+                if (!user) {
                     throw new AppError_js_1.AppError("Unauthorized", 401);
                 }
                 return [4 /*yield*/, Blog_js_1.default.findById(id)];
             case 1:
-                blog = _b.sent();
+                blog = _a.sent();
                 if (!blog) {
                     throw new AppError_js_1.AppError("Blog post not found", 404);
                 }
@@ -75,7 +75,7 @@ exports.createComment = (0, asyncHandler_js_1.asyncHandler)(function (req, res) 
                         body: body.trim()
                     })];
             case 2:
-                comment = _b.sent();
+                comment = _a.sent();
                 return [2 /*return*/, res.status(201).json({
                         success: true,
                         message: "Comment created successfully",
@@ -182,12 +182,16 @@ exports.deleteComment = (0, asyncHandler_js_1.asyncHandler)(function (req, res) 
     });
 }); });
 exports.toggleLikeComment = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, id, commentId, userId, comment, alreadyLiked;
+    var _a, id, commentId, user, userId, comment, alreadyLiked;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
                 _a = req.params, id = _a.id, commentId = _a.commentId;
-                userId = req.user._id;
+                user = req.user;
+                if (!user) {
+                    throw new AppError_js_1.AppError("Not authorized", 401);
+                }
+                userId = user._id;
                 if (!mongoose_1.default.isValidObjectId(id)) {
                     throw new AppError_js_1.AppError("Invalid blog post ID", 400);
                 }

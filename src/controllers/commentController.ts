@@ -13,8 +13,8 @@ import {createCommentType} from "../types/commentTypes.js"
 export const createComment=asyncHandler(async(req:Request<{}, {}, createCommentType>, res:Response)=>{
   const {body} = req.body
   const {id} = req.params as {id:string}
-  const userId = req.user?._id
-  
+  const user = req.user
+  const userId = user._id
   if(!body?.trim()){
     throw new AppError("Comment body can't be empty", 400)
   }
@@ -26,7 +26,7 @@ export const createComment=asyncHandler(async(req:Request<{}, {}, createCommentT
   if(!mongoose.isValidObjectId(id)){
     throw new AppError("Invalid blog ID", 400)
   }
-  if(!userId) {
+  if(!user) {
   throw new AppError("Unauthorized", 401)
 }
   
@@ -121,7 +121,11 @@ export const toggleLikeComment =asyncHandler(async(req:Request, res:Response)=>{
     id:string,
     commentId:string
   }
-  const userId = req.user._id
+  const user = req.user
+  if(!user){
+    throw new AppError("Not authorized", 401)
+  }
+  const userId = user._id
   if(!mongoose.isValidObjectId(id)){
     throw new AppError("Invalid blog post ID", 400)
   }

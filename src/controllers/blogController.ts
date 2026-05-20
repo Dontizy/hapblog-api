@@ -17,10 +17,12 @@ export const createBlogPost = asyncHandler(async (req: Request<{}, {}, blogCreat
     if (!title || !content) {
         throw new AppError("Title and Content can't be empty!", 400)
     }
-    const userId = req.user?._id;
-    if (!userId) {
-        throw new AppError('Unauthorized', 401)
+    const user = req.user
+    if(!user){
+      throw new AppError("Not authorized", 401)
     }
+    const userId = user._id;
+    
     const blogData: CreateBlogDTO = { title, content, author: userId }
 
     if (req.file) {
@@ -107,7 +109,11 @@ export const toggleLikePost =asyncHandler(async(req:Request, res:Response)=>{
   const {id} = req.params as{
     id:string,
   }
-  const userId = req.user._id
+  const user = req.user
+  if(!user){
+    throw new AppError("Not authorized ", 401)
+  }
+  const userId =user._id
   if(!mongoose.isValidObjectId(id)){
     throw new AppError("Invalid blog post ID", 400)
   }
