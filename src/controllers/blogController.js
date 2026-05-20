@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteBlogPost = exports.updateBlogPost = exports.getBlogPost = exports.getAllBlogPost = exports.createBlogPost = void 0;
+exports.toggleLikePost = exports.deleteBlogPost = exports.updateBlogPost = exports.getBlogPost = exports.getAllBlogPost = exports.createBlogPost = void 0;
 var Blog_js_1 = require("../models/Blog.js");
 var asyncHandler_js_1 = require("../utils/asyncHandler.js");
 var AppError_js_1 = require("../utils/AppError.js");
@@ -79,7 +79,7 @@ exports.getAllBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res)
     var blog;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4 /*yield*/, Blog_js_1.default.find().sort({ createdAt: -1 }).populate("author", "name email")];
+            case 0: return [4 /*yield*/, Blog_js_1.default.find().sort({ createdAt: -1 }).populate("author", "name email").populate("commentsCount")];
             case 1:
                 blog = _a.sent();
                 res.status(200).json(blog);
@@ -152,7 +152,7 @@ exports.updateBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res)
     });
 }); });
 exports.deleteBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var id, deletedBlog;
+    var id, blog;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -160,13 +160,54 @@ exports.deleteBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res)
                 if (!mongoose_1.default.isValidObjectId(id)) {
                     throw new AppError_js_1.AppError("Invalid blog id", 400);
                 }
-                return [4 /*yield*/, Blog_js_1.default.findByIdAndDelete(id)];
+                return [4 /*yield*/, Blog_js_1.default.findById(id)];
             case 1:
-                deletedBlog = _a.sent();
-                if (!deletedBlog) {
+                blog = _a.sent();
+                if (!blog) {
                     throw new AppError_js_1.AppError("Post not found", 404);
                 }
-                return [2 /*return*/, res.status(200).json({ success: true, data: deletedBlog })];
+                return [4 /*yield*/, blog.deleteOne()];
+            case 2:
+                _a.sent();
+                return [2 /*return*/, res.status(200).json({ success: true, message: "Blog post deleted successfully" })];
+        }
+    });
+}); });
+exports.toggleLikePost = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var id, userId, blog, alreadyLiked;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                id = req.params.id;
+                userId = req.user._id;
+                if (!mongoose_1.default.isValidObjectId(id)) {
+                    throw new AppError_js_1.AppError("Invalid blog post ID", 400);
+                }
+                return [4 /*yield*/, Blog_js_1.default.findById(id)];
+            case 1:
+                blog = _a.sent();
+                if (!blog) {
+                    throw new AppError_js_1.AppError("Blog post not found", 404);
+                }
+                alreadyLiked = blog.likes.some(function (like) { return like.toString() === userId.toString(); });
+                if (!alreadyLiked) return [3 /*break*/, 3];
+                blog.likes = blog.likes.filter(function (like) { return like.toString() !== userId.toString(); });
+                return [4 /*yield*/, blog.save()];
+            case 2:
+                _a.sent();
+                return [2 /*return*/, res.status(200).json({
+                        success: true,
+                        message: "Unliked blog post"
+                    })];
+            case 3:
+                blog.likes.push(userId);
+                return [4 /*yield*/, blog.save()];
+            case 4:
+                _a.sent();
+                return [2 /*return*/, res.status(200).json({
+                        success: true,
+                        message: "liked blog post"
+                    })];
         }
     });
 }); });

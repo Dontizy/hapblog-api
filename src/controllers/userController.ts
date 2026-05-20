@@ -9,6 +9,8 @@ import mongoose from 'mongoose';
 import Blog from '../models/Blog.js';
 import uploadToCloudinary from "../utils/uploadToCloudinary.js";
 import { UploadApiResponse } from "cloudinary";
+import { v2 as cloudinary } from "cloudinary";
+
 
 const hashPassword = async (plainPassword: string) => {
     const salt = await bcrypt.genSalt(10);
@@ -78,8 +80,7 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
     if (!user) {
         throw new AppError("User not found", 404)
     }
-    await Blog.deleteMany({ author: user._id })
-    await User.findByIdAndDelete(id)
+    await user.deleteOne()
     return res.status(200).json({
         success: true,
         message: "User and associated blogs deleted successfully",

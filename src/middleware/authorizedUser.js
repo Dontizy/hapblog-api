@@ -36,11 +36,12 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isAdmin = exports.isAuthorized = void 0;
+exports.isCommentAuthorOrAdmin = exports.isCommentAuthor = exports.isAdmin = exports.isAuthorized = void 0;
 var Blog_js_1 = require("../models/Blog.js");
 var asyncHandler_js_1 = require("../utils/asyncHandler.js");
 var AppError_js_1 = require("../utils/AppError.js");
 var mongoose_1 = require("mongoose");
+var Comment_js_1 = require("../models/Comment.js");
 exports.isAuthorized = (0, asyncHandler_js_1.asyncHandler)(function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
     var id, blog, user, role;
     var _a, _b;
@@ -81,5 +82,58 @@ exports.isAdmin = (0, asyncHandler_js_1.asyncHandler)(function (req, res, next) 
         }
         next();
         return [2 /*return*/];
+    });
+}); });
+exports.isCommentAuthor = (0, asyncHandler_js_1.asyncHandler)(function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
+    var commentId, userId, comment;
+    var _a;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                commentId = req.params.commentId;
+                userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+                if (!mongoose_1.default.isValidObjectId(commentId)) {
+                    throw new AppError_js_1.AppError("Invalid comment ID", 400);
+                }
+                return [4 /*yield*/, Comment_js_1.default.findById(commentId)];
+            case 1:
+                comment = _b.sent();
+                if (!comment) {
+                    throw new AppError_js_1.AppError("Comment not found", 404);
+                }
+                if (comment.author.toString() !== (userId === null || userId === void 0 ? void 0 : userId.toString())) {
+                    throw new AppError_js_1.AppError("Permission denied, you are not the author of this comment", 403);
+                }
+                next();
+                return [2 /*return*/];
+        }
+    });
+}); });
+exports.isCommentAuthorOrAdmin = (0, asyncHandler_js_1.asyncHandler)(function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
+    var commentId, userId, role, comment, isAuthor, isAdmin;
+    var _a, _b;
+    return __generator(this, function (_c) {
+        switch (_c.label) {
+            case 0:
+                commentId = req.params.commentId;
+                userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+                role = (_b = req.user) === null || _b === void 0 ? void 0 : _b.role;
+                if (!mongoose_1.default.isValidObjectId(commentId)) {
+                    throw new AppError_js_1.AppError("Invalid comment ID", 400);
+                }
+                return [4 /*yield*/, Comment_js_1.default.findById(commentId)];
+            case 1:
+                comment = _c.sent();
+                if (!comment) {
+                    throw new AppError_js_1.AppError("Comment not found", 404);
+                }
+                isAuthor = comment.author.toString() === (userId === null || userId === void 0 ? void 0 : userId.toString());
+                isAdmin = role === "admin";
+                if (!isAuthor && !isAdmin) {
+                    throw new AppError_js_1.AppError("Permission denied, only admin or author is allowed", 403);
+                }
+                next();
+                return [2 /*return*/];
+        }
     });
 }); });

@@ -2,7 +2,7 @@ import { Router } from "express";
 import {register,login, deleteUser, allUsers, changePassword, addOrRemoveAdmin, userProfile, avatarUpdate} from '../controllers/userController.js'
 import { protect } from "../middleware/authMiddleware.js";
 import { isAdmin } from "../middleware/authorizedUser.js";
-import {upload} from "../utils/uploader.ts"
+import {upload} from "../utils/uploader.js"
 
 
 const router = Router();

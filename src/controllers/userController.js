@@ -43,8 +43,8 @@ var User_js_1 = require("../models/User.js");
 var asyncHandler_js_1 = require("../utils/asyncHandler.js");
 var AppError_js_1 = require("../utils/AppError.js");
 var mongoose_1 = require("mongoose");
-var Blog_js_1 = require("../models/Blog.js");
 var uploadToCloudinary_js_1 = require("../utils/uploadToCloudinary.js");
+var cloudinary_1 = require("cloudinary");
 var hashPassword = function (plainPassword) { return __awaiter(void 0, void 0, void 0, function () {
     var salt;
     return __generator(this, function (_a) {
@@ -154,11 +154,8 @@ exports.deleteUser = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { r
                 if (!user) {
                     throw new AppError_js_1.AppError("User not found", 404);
                 }
-                return [4 /*yield*/, Blog_js_1.default.deleteMany({ author: user._id })];
+                return [4 /*yield*/, user.deleteOne()];
             case 2:
-                _a.sent();
-                return [4 /*yield*/, User_js_1.User.findByIdAndDelete(id)];
-            case 3:
                 _a.sent();
                 return [2 /*return*/, res.status(200).json({
                         success: true,
@@ -287,7 +284,7 @@ exports.avatarUpdate = (0, asyncHandler_js_1.asyncHandler)(function (req, res) {
                     throw new AppError_js_1.AppError("Please upload an image", 400);
                 }
                 if (!user.avatarPublicId) return [3 /*break*/, 3];
-                return [4 /*yield*/, cloudinary.uploader.destroy(user.avatarPublicId)];
+                return [4 /*yield*/, cloudinary_1.v2.uploader.destroy(user.avatarPublicId)];
             case 2:
                 _b.sent();
                 _b.label = 3;

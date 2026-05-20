@@ -14,6 +14,12 @@ exports.commentSchema = new mongoose_1.Schema({
         required: [true, "Comment body can't be empty"],
         trim: true
     },
+    likes: [
+        {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: "User",
+        },
+    ],
     blog: {
         type: mongoose_1.Schema.Types.ObjectId,
         required: true,
@@ -21,7 +27,13 @@ exports.commentSchema = new mongoose_1.Schema({
         index: true
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    versionKey: false,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+});
+exports.commentSchema.virtual("likedCommentCount").get(function () {
+    return this.likes.length;
 });
 exports.Comment = (0, mongoose_1.model)("Comment", exports.commentSchema);
 exports.default = exports.Comment;

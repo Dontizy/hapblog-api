@@ -4,7 +4,7 @@ var express_1 = require("express");
 var userController_js_1 = require("../controllers/userController.js");
 var authMiddleware_js_1 = require("../middleware/authMiddleware.js");
 var authorizedUser_js_1 = require("../middleware/authorizedUser.js");
-var uploader_ts_1 = require("../utils/uploader.ts");
+var uploader_js_1 = require("../utils/uploader.js");
 var router = (0, express_1.Router)();
 /**
  * @openapi
@@ -229,5 +229,5 @@ router.get("/profile", authMiddleware_js_1.protect, userController_js_1.userProf
 *       404:
 *         description: User not found
 */
-router.patch("/avatar", authMiddleware_js_1.protect, uploader_ts_1.upload.single("avatar"), userController_js_1.avatarUpdate);
+router.patch("/avatar", authMiddleware_js_1.protect, uploader_js_1.upload.single("avatar"), userController_js_1.avatarUpdate);
 exports.default = router;

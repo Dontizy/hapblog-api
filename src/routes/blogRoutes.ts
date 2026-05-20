@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createBlogPost, getAllBlogPost, getBlogPost, updateBlogPost, deleteBlogPost } from "../controllers/blogController.js";
+import { createBlogPost, getAllBlogPost, getBlogPost, updateBlogPost, deleteBlogPost, toggleLikePost } from "../controllers/blogController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { upload } from "../utils/uploader.js";
 import { isAuthorized } from "../middleware/authorizedUser.js";
@@ -160,5 +160,37 @@ router.put('/post/:id', protect, isAuthorized, upload.single("image"), updateBlo
  */
 router.delete('/post/:id', protect, isAuthorized, deleteBlogPost)
 
+ /**
+ * @swagger
+ * /blog/{id}/like:
+ *   patch:
+ *     summary: Like or unlike a blog post
+ *     tags:
+ *       - Blogs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *
+ *     responses:
+ *       200:
+ *         description: Blog liked or unliked successfully
+ *
+ *       400:
+ *         description: Invalid blog ID
+ *
+ *       401:
+ *         description: Unauthorized
+ *
+ *       404:
+ *         description: Blog post not found
+ */
+ 
+ router.patch("/:id/like", protect, toggleLikePost)
+ 
 export default router;
 

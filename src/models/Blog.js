@@ -36,73 +36,63 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.User = void 0;
 var mongoose_1 = require("mongoose");
-var Blog_js_1 = require("./Blog.js");
-var userSchema = new mongoose_1.Schema({
-    name: {
+var Comment_js_1 = require("./Comment.js");
+var blogSchema = new mongoose_1.Schema({
+    title: {
         type: String,
-        required: [true, "Please add name!"]
+        required: [true, "Enter title for the blog post"],
+        trim: true
     },
-    email: {
+    content: {
         type: String,
-        required: [true, "Please add an email"],
-        unique: true,
-        trim: true,
-        lowercase: true,
-        match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please add a valid email']
+        required: [true, "Content can't be empty!"]
     },
-    role: {
-        type: String,
-        enum: ["user", "admin"],
-        default: 'user'
-    },
-    avatar: {
+    imageUrl: {
         type: String,
         required: false,
-        default: "https://res.cloudinary.com/dxdtdqxse/image/upload/v1778510804/ChatGPT_Image_May_11_2026_03_45_21_PM_zxd9oh.png"
     },
-    avatarPublicId: {
-        type: String,
-    },
-    password: {
-        type: String,
-        required: [true, "Please enter your password"],
-        trim: true,
-        minlength: 5,
-        select: false
+    likes: [
+        {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: "User",
+        },
+    ],
+    author: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+        index: true
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    versionKey: false,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
 });
-userSchema.pre("deleteOne", { document: true, query: false }, function (next) {
+blogSchema.pre("deleteOne", { document: true, query: false }, function (next) {
     return __awaiter(this, void 0, void 0, function () {
-        var blogs, _i, blogs_1, blog;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, Blog_js_1.default.find({
-                        author: this._id,
+                case 0: return [4 /*yield*/, Comment_js_1.Comment.deleteMany({
+                        blog: this._id,
                     })];
                 case 1:
-                    blogs = _a.sent();
-                    _i = 0, blogs_1 = blogs;
-                    _a.label = 2;
-                case 2:
-                    if (!(_i < blogs_1.length)) return [3 /*break*/, 5];
-                    blog = blogs_1[_i];
-                    return [4 /*yield*/, blog.deleteOne()];
-                case 3:
                     _a.sent();
-                    _a.label = 4;
-                case 4:
-                    _i++;
-                    return [3 /*break*/, 2];
-                case 5:
                     next();
                     return [2 /*return*/];
             }
         });
     });
 });
-exports.User = (0, mongoose_1.model)('User', userSchema);
-exports.default = exports.User;
+blogSchema.virtual("commentsCount", {
+    ref: "Comment",
+    localField: "_id",
+    foreignField: "blog",
+    count: true,
+});
+blogSchema.virtual("likesCount").get(function () {
+    return this.likes.length;
+});
+var Blog = (0, mongoose_1.model)("Blog", blogSchema);
+exports.default = Blog;

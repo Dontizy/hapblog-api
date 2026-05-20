@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createComment = void 0;
+exports.toggleLikeComment = exports.deleteComment = exports.updateComment = exports.fetchComments = exports.createComment = void 0;
 var mongoose_1 = require("mongoose");
 var asyncHandler_js_1 = require("../utils/asyncHandler.js");
 var AppError_js_1 = require("../utils/AppError.js");
@@ -50,15 +50,18 @@ exports.createComment = (0, asyncHandler_js_1.asyncHandler)(function (req, res) 
             case 0:
                 body = req.body.body;
                 id = req.params.id;
+                userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
                 if (!(body === null || body === void 0 ? void 0 : body.trim())) {
                     throw new AppError_js_1.AppError("Comment body can't be empty", 400);
                 }
-                userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
                 if (!mongoose_1.default.isValidObjectId(userId)) {
                     throw new AppError_js_1.AppError("Invalid user ID", 400);
                 }
                 if (!mongoose_1.default.isValidObjectId(id)) {
-                    throw new AppError_js_1.AppError("Invalid blog ID");
+                    throw new AppError_js_1.AppError("Invalid blog ID", 400);
+                }
+                if (!userId) {
+                    throw new AppError_js_1.AppError("Unauthorized", 401);
                 }
                 return [4 /*yield*/, Blog_js_1.default.findById(id)];
             case 1:
@@ -77,6 +80,147 @@ exports.createComment = (0, asyncHandler_js_1.asyncHandler)(function (req, res) 
                         success: true,
                         message: "Comment created successfully",
                         comment: comment
+                    })];
+        }
+    });
+}); });
+exports.fetchComments = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var id, blog, comments;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                id = req.params.id;
+                if (!mongoose_1.default.isValidObjectId(id)) {
+                    throw new AppError_js_1.AppError("Invalid blog post ID", 400);
+                }
+                return [4 /*yield*/, Blog_js_1.default.findById(id)];
+            case 1:
+                blog = _a.sent();
+                if (!blog) {
+                    throw new AppError_js_1.AppError("Blog post not found", 404);
+                }
+                return [4 /*yield*/, Comment_js_1.default.find({ blog: id }).sort({ createdAt: -1 }).populate("author", "name avatar")];
+            case 2:
+                comments = _a.sent();
+                return [2 /*return*/, res.status(200).json({
+                        success: true,
+                        comments: comments
+                    })];
+        }
+    });
+}); });
+exports.updateComment = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var _a, id, commentId, body, blog, comment;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                _a = req.params, id = _a.id, commentId = _a.commentId;
+                body = req.body.body;
+                if (!mongoose_1.default.isValidObjectId(id)) {
+                    throw new AppError_js_1.AppError("Invalid blog post ID", 400);
+                }
+                if (!mongoose_1.default.isValidObjectId(commentId)) {
+                    throw new AppError_js_1.AppError("Invalid comment ID", 400);
+                }
+                if (!(body === null || body === void 0 ? void 0 : body.trim())) {
+                    throw new AppError_js_1.AppError("Comment body can't be empty", 400);
+                }
+                return [4 /*yield*/, Blog_js_1.default.findById(id)];
+            case 1:
+                blog = _b.sent();
+                if (!blog) {
+                    throw new AppError_js_1.AppError("Blog post not found", 404);
+                }
+                return [4 /*yield*/, Comment_js_1.default.findOne({ _id: commentId, blog: id })];
+            case 2:
+                comment = _b.sent();
+                if (!comment) {
+                    throw new AppError_js_1.AppError("Comment not found", 404);
+                }
+                comment.body = body.trim();
+                return [4 /*yield*/, comment.save()];
+            case 3:
+                _b.sent();
+                return [2 /*return*/, res.status(200).json({
+                        success: true,
+                        comment: comment,
+                        message: "Comment updated successfully"
+                    })];
+        }
+    });
+}); });
+exports.deleteComment = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var _a, commentId, id, blog, comment;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                _a = req.params, commentId = _a.commentId, id = _a.id;
+                if (!mongoose_1.default.isValidObjectId(commentId)) {
+                    throw new AppError_js_1.AppError("Invalid comment ID", 400);
+                }
+                return [4 /*yield*/, Blog_js_1.default.findById(id)];
+            case 1:
+                blog = _b.sent();
+                if (!blog) {
+                    throw new AppError_js_1.AppError("Blog post not found", 404);
+                }
+                return [4 /*yield*/, Comment_js_1.default.findOne({ _id: commentId, blog: id
+                    })];
+            case 2:
+                comment = _b.sent();
+                if (!comment) {
+                    throw new AppError_js_1.AppError("Comment not found", 404);
+                }
+                return [4 /*yield*/, comment.deleteOne()];
+            case 3:
+                _b.sent();
+                return [2 /*return*/, res.status(200).json({
+                        success: true,
+                        message: "Comment deleted successfully"
+                    })];
+        }
+    });
+}); });
+exports.toggleLikeComment = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var _a, id, commentId, userId, comment, alreadyLiked;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                _a = req.params, id = _a.id, commentId = _a.commentId;
+                userId = req.user._id;
+                if (!mongoose_1.default.isValidObjectId(id)) {
+                    throw new AppError_js_1.AppError("Invalid blog post ID", 400);
+                }
+                if (!mongoose_1.default.isValidObjectId(commentId)) {
+                    throw new AppError_js_1.AppError("Invalid blog comment ID", 400);
+                }
+                return [4 /*yield*/, Comment_js_1.default.findOne({
+                        _id: commentId,
+                        blog: id
+                    })];
+            case 1:
+                comment = _b.sent();
+                if (!comment) {
+                    throw new AppError_js_1.AppError("Blog post comment not found", 404);
+                }
+                alreadyLiked = comment.likes.some(function (like) { return like.toString() === userId.toString(); });
+                if (!alreadyLiked) return [3 /*break*/, 3];
+                comment.likes = comment.likes.filter(function (like) { return like.toString() !== userId.toString(); });
+                return [4 /*yield*/, comment.save()];
+            case 2:
+                _b.sent();
+                return [2 /*return*/, res.status(200).json({
+                        success: true,
+                        message: "Unliked comment"
+                    })];
+            case 3:
+                comment.likes.push(userId);
+                return [4 /*yield*/, comment.save()];
+            case 4:
+                _b.sent();
+                return [2 /*return*/, res.status(200).json({
+                        success: true,
+                        message: "liked comment"
                     })];
         }
     });

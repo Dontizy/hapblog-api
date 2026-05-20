@@ -3,6 +3,7 @@ import {Types,Schema, model, HydratedDocument} from "mongoose";
 export interface IComment{
   author:Types.ObjectId;
   blog:Types.ObjectId;
+  likes:Types.ObjectId[];
   body:string;
   createdAt:Date;
   updatedAt:Date;
@@ -22,6 +23,12 @@ export const commentSchema = new Schema<IComment>({
     required:[true, "Comment body can't be empty"],
     trim:true
   },
+  likes: [
+  {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  },
+],
   blog:{
     type:Schema.Types.ObjectId,
     required:true,
@@ -29,8 +36,15 @@ export const commentSchema = new Schema<IComment>({
     index:true
   }
 },{
-  timestamps:true
+  timestamps:true,
+  versionKey: false,
+  toJSON:{ virtuals:true },
+  toObject:{virtuals:true},
   })
   
+  commentSchema.virtual("likedCommentCount").get(function () {
+  return this.likes.length;
+});
+
   export const Comment = model<IComment>("Comment", commentSchema)
   export default Comment;

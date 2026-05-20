@@ -155,4 +155,34 @@ router.put('/post/:id', authMiddleware_js_1.protect, authorizedUser_js_1.isAutho
  *
  */
 router.delete('/post/:id', authMiddleware_js_1.protect, authorizedUser_js_1.isAuthorized, blogController_js_1.deleteBlogPost);
+/**
+* @swagger
+* /blog/{id}/like:
+*   patch:
+*     summary: Like or unlike a blog post
+*     tags:
+*       - Blogs
+*     security:
+*       - bearerAuth: []
+*     parameters:
+*       - in: path
+*         name: id
+*         required: true
+*         schema:
+*           type: string
+*
+*     responses:
+*       200:
+*         description: Blog liked or unliked successfully
+*
+*       400:
+*         description: Invalid blog ID
+*
+*       401:
+*         description: Unauthorized
+*
+*       404:
+*         description: Blog post not found
+*/
+router.patch("/:id/like", authMiddleware_js_1.protect, blogController_js_1.toggleLikePost);
 exports.default = router;

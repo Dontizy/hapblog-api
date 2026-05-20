@@ -35,7 +35,7 @@ export const createBlogPost = asyncHandler(async (req: Request<{}, {}, blogCreat
 })
 
 export const getAllBlogPost = asyncHandler(async (req: Request, res: Response) => {
-    const blog = await Blog.find().sort({ createdAt: -1 }).populate("author", "name email")
+    const blog = await Blog.find().sort({ createdAt: -1 }).populate("author", "name email").populate("commentsCount")
     
     res.status(200).json(blog)
 })
@@ -93,9 +93,43 @@ export const deleteBlogPost = asyncHandler(async (req: Request, res: Response) =
     if (!mongoose.isValidObjectId(id)) {
         throw new AppError("Invalid blog id", 400)
     }
-    const deletedBlog = await Blog.findByIdAndDelete(id)
-    if (!deletedBlog) {
+    const blog = await Blog.findById(id)
+    
+    if (!blog) {
         throw new AppError("Post not found", 404)
     }
-    return res.status(200).json({ success: true, data:deletedBlog })
+    await blog.deleteOne()
+    return res.status(200).json({ success: true, message:"Blog post deleted successfully" })
+})
+
+
+export const toggleLikePost =asyncHandler(async(req:Request, res:Response)=>{
+  const {id} = req.params as{
+    id:string,
+  }
+  const userId = req.user._id
+  if(!mongoose.isValidObjectId(id)){
+    throw new AppError("Invalid blog post ID", 400)
+  }
+  const blog = await Blog.findById(id)
+  if(!blog){
+    throw new AppError("Blog post not found", 404)
+  }
+  const alreadyLiked = blog.likes.some((like)=> like.toString() === userId.toString())
+  
+  if(alreadyLiked){
+   blog.likes = blog.likes.filter((like)=> like.toString() !== userId.toString())
+   await blog.save()
+   return res.status(200).json({
+     success:true,
+     message:"Unliked blog post"
+   })
+  }
+  
+  blog.likes.push(userId)
+ await blog.save()
+ return res.status(200).json({
+   success:true,
+   message:"liked blog post"
+ })
 })
