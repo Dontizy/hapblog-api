@@ -14,13 +14,9 @@ export const createComment=asyncHandler(async(req:Request<{}, {}, createCommentT
   const {body} = req.body
   const {id} = req.params as {id:string}
   const user = req.user
-  const userId = user._id
+  
   if(!body?.trim()){
     throw new AppError("Comment body can't be empty", 400)
-  }
-  
-  if(!mongoose.isValidObjectId(userId)){
-    throw new AppError("Invalid user ID", 400)
   }
   
   if(!mongoose.isValidObjectId(id)){
@@ -29,7 +25,7 @@ export const createComment=asyncHandler(async(req:Request<{}, {}, createCommentT
   if(!user) {
   throw new AppError("Unauthorized", 401)
 }
-  
+const userId = user._id
   
   const blog = await Blog.findById(id)
   if(!blog){

@@ -1,7 +1,5 @@
 import mongoose, {Document, Schema, model, HydratedDocument} from "mongoose";
-import type {CallbackWithoutResultAndOptionalError} from "mongoose";
 import Blog from "./Blog.js"
-
 
 export interface IUser {
     name:string;
@@ -52,20 +50,11 @@ const userSchema = new Schema<IUser>({
     timestamps:true
 })
 
-userSchema.pre(
-  "deleteOne",
-  { document: true, query: false },
-  async function (this: UserDocument, next:CallbackWithoutResultAndOptionalError) {
-    const blogs = await Blog.find({
-      author: this._id,
-    });
+userSchema.pre("deleteOne", async function (this: UserDocument) {
+  await Blog.deleteMany({
+    author: this._id,
+  });
+});
 
-    for (const blog of blogs) {
-      await blog.deleteOne();
-    }
-
-    next();
-  }
-);
 export const User = model<IUser>('User', userSchema)
 export default User

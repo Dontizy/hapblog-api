@@ -37,12 +37,8 @@ export const createBlogPost = asyncHandler(async (req: Request<{}, {}, blogCreat
 })
 
 export const getAllBlogPost = asyncHandler(async (req: Request, res: Response) => {
-<<<<<<< HEAD
+
     const blog = await Blog.find().sort({ createdAt: -1 }).populate("author", "name email").populate("commentsCount")
-    
-=======
-    const blog = await Blog.find().sort({ createdAt: -1 }).populate("author", "name email")
->>>>>>> baf803f (Fix TypeScript auth errors)
     res.status(200).json(blog)
 })
 
@@ -100,14 +96,8 @@ export const deleteBlogPost = asyncHandler(async (req: Request, res: Response) =
     if (!blog) {
         throw new AppError("Post not found", 404)
     }
-<<<<<<< HEAD
     await blog.deleteOne()
     return res.status(200).json({ success: true, message:"Blog post deleted successfully" })
-=======
-    return res.status(200).json({ success: true, data:deletedBlog,
-      message:"Blog post deleted successfully|"
-    })
->>>>>>> baf803f (Fix TypeScript auth errors)
 })
 
 
