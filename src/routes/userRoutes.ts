@@ -79,7 +79,7 @@ router.post('/login', login)
 
 /**
  * @openapi
- * /user/{id}:
+ * /user/delete/{id}:
  *   delete:
  *     summary: Admin delete a user
  *     description: An admin delete a user and all blogs associated with the user

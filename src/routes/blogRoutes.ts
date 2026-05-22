@@ -162,7 +162,7 @@ router.delete('/post/:id', protect, isAuthorized, deleteBlogPost)
 
  /**
  * @swagger
- * /blog/{id}/like:
+ * /blog/post/{id}/like:
  *   patch:
  *     summary: Like or unlike a blog post
  *     tags:
@@ -190,7 +190,7 @@ router.delete('/post/:id', protect, isAuthorized, deleteBlogPost)
  *         description: Blog post not found
  */
  
- router.patch("/:id/like", protect, toggleLikePost)
+ router.patch("/post/:id/like", protect, toggleLikePost)
  
 export default router;
 

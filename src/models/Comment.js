@@ -32,6 +32,12 @@ exports.commentSchema = new mongoose_1.Schema({
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
 });
+exports.commentSchema.virtual("replysCount", {
+    ref: "Reply",
+    localField: "_id",
+    foreignField: "reply",
+    count: true,
+});
 exports.commentSchema.virtual("likedCommentCount").get(function () {
     return this.likes.length;
 });

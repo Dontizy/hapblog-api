@@ -7,7 +7,7 @@ const router = Router()
 
 /**
  * @swagger
- * /blog/{id}/comments:
+ * /blog/post/{id}/comments:
  *   get:
  *     summary: Get a single blog with comments
  *     tags: [Comments]
@@ -26,11 +26,11 @@ const router = Router()
  *       404:
  *         description: Blog not found
  */
-router.get("/:id/comments", fetchComments)
+router.get("/post/:id/comments", fetchComments)
  
  /**
  * @swagger
- * /blog/{id}/comment/:
+ * /blog/post/{id}/comment/:
  *   post:
  *     summary: Create a comment
  *     tags: [Comments]
@@ -59,7 +59,7 @@ router.get("/:id/comments", fetchComments)
  *       404:
  *         description: Blog not found
  */
-router.post("/:id/comment", protect, createComment)
+router.post("/post/:id/comment", protect, createComment)
 
 /**
  * @swagger

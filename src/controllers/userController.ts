@@ -10,6 +10,7 @@ import Blog from '../models/Blog.js';
 import uploadToCloudinary from "../utils/uploadToCloudinary.js";
 import { UploadApiResponse } from "cloudinary";
 import {v2 as cloudinary} from "cloudinary"
+import Comment from "../models/Comment.js"
 
 const hashPassword = async (plainPassword: string) => {
     const salt = await bcrypt.genSalt(10);
@@ -79,7 +80,16 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
     if (!user) {
         throw new AppError("User not found", 404)
     }
+    
+    // 1. Fetch only the IDs of the user's blogs (highly efficient)
+    const userBlogs =  await Blog.find({author:user._id}).select("_id")
+    const blogIds = userBlogs.map((blog)=> blog._id)
+    if(blogIds.length > 0){
+      await Comment.deleteMany({ blog: { $in: blogIds }})
+    }
+    await Blog.deleteMany({ author: user._id })
     await User.findByIdAndDelete(id)
+    
     return res.status(200).json({
         success: true,
         message: "User and associated blogs deleted successfully",
@@ -156,7 +166,7 @@ export const userProfile = asyncHandler(async(req:Request, res:Response)=>{
     id:user._id,
     name:user.name,
     email:user.email,
-   // avatar:user.avatar
+    avatar:user?.avatar
   }
   return res.status(200).json({user:userData})
 })

@@ -50,11 +50,6 @@ const userSchema = new Schema<IUser>({
     timestamps:true
 })
 
-userSchema.pre("deleteOne", async function (this: UserDocument) {
-  await Blog.deleteMany({
-    author: this._id,
-  });
-});
 
 export const User = model<IUser>('User', userSchema)
 export default User

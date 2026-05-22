@@ -7,7 +7,7 @@ var authorizedUser_js_1 = require("../middleware/authorizedUser.js");
 var router = (0, express_1.Router)();
 /**
  * @swagger
- * /blog/{id}/comments:
+ * /blog/post/{id}/comments:
  *   get:
  *     summary: Get a single blog with comments
  *     tags: [Comments]
@@ -26,10 +26,10 @@ var router = (0, express_1.Router)();
  *       404:
  *         description: Blog not found
  */
-router.get("/:id/comments", commentController_js_1.fetchComments);
+router.get("/post/:id/comments", commentController_js_1.fetchComments);
 /**
 * @swagger
-* /blog/{id}/comment/:
+* /blog/post/{id}/comment/:
 *   post:
 *     summary: Create a comment
 *     tags: [Comments]
@@ -58,7 +58,7 @@ router.get("/:id/comments", commentController_js_1.fetchComments);
 *       404:
 *         description: Blog not found
 */
-router.post("/:id/comment", authMiddleware_js_1.protect, commentController_js_1.createComment);
+router.post("/post/:id/comment", authMiddleware_js_1.protect, commentController_js_1.createComment);
 /**
  * @swagger
  * /blog/{id}/comment/{commentId}:

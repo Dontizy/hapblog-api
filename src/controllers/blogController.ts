@@ -7,6 +7,8 @@ import { CreateBlogDTO } from "../dto/BlogData.dto.js";
 import mongoose from "mongoose";
 import uploadToCloudinary from "../utils/uploadToCloudinary.js";
 import { UploadApiResponse } from "cloudinary";
+import Comment from "../models/Comment.js"
+import Reply from "../models/Reply.js"
 
 
 export const createBlogPost = asyncHandler(async (req: Request<{}, {}, blogCreateType>, res: Response) => {
@@ -27,7 +29,6 @@ export const createBlogPost = asyncHandler(async (req: Request<{}, {}, blogCreat
     if (req.file) {
         const upload = await uploadToCloudinary(req.file) as UploadApiResponse;
         blogData.imageUrl = upload.secure_url;
-        //`/uploads/${req.file.filename}`
     }
     const blog = await Blog.create(blogData)
     res.status(201).json({
@@ -37,8 +38,8 @@ export const createBlogPost = asyncHandler(async (req: Request<{}, {}, blogCreat
 })
 
 export const getAllBlogPost = asyncHandler(async (req: Request, res: Response) => {
-
     const blog = await Blog.find().sort({ createdAt: -1 }).populate("author", "name email").populate("commentsCount")
+    
     res.status(200).json(blog)
 })
 
@@ -52,8 +53,12 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
     if (!blog) {
         throw new AppError("Post does not exist", 404)
     }
-
-    return res.status(200).json(blog)
+    const comment = await Comment.find({blog:id}).populate("author", "name avatar").sort({createdAt:-1})
+    return res.status(200).json({
+      success:true,
+    blog,
+      comment
+    })
 
 })
 
@@ -96,7 +101,15 @@ export const deleteBlogPost = asyncHandler(async (req: Request, res: Response) =
     if (!blog) {
         throw new AppError("Post not found", 404)
     }
-    await blog.deleteOne()
+    const comments = await Comment.find({blog:blog._id}).select("_id").lean()
+    const commentIds = comments.map((comment)=>comment._id)
+    if(commentIds.length > 0){
+      await Reply.deleteMany({
+        comment:{ $in: commentIds}
+      })
+    }
+    await Comment.deleteMany({blog:blog._id})
+    await Blog.findByIdAndDelete(id)
     return res.status(200).json({ success: true, message:"Blog post deleted successfully" })
 })
 

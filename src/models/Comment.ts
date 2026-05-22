@@ -42,6 +42,14 @@ export const commentSchema = new Schema<IComment>({
   toObject:{virtuals:true},
   })
   
+  commentSchema.virtual("replysCount", {
+  ref: "Reply",
+  localField: "_id",
+  foreignField: "reply",
+  count: true,
+});
+
+  
   commentSchema.virtual("likedCommentCount").get(function () {
   return this.likes.length;
 });

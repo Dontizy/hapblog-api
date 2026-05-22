@@ -43,8 +43,10 @@ var User_js_1 = require("../models/User.js");
 var asyncHandler_js_1 = require("../utils/asyncHandler.js");
 var AppError_js_1 = require("../utils/AppError.js");
 var mongoose_1 = require("mongoose");
+var Blog_js_1 = require("../models/Blog.js");
 var uploadToCloudinary_js_1 = require("../utils/uploadToCloudinary.js");
 var cloudinary_1 = require("cloudinary");
+var Comment_js_1 = require("../models/Comment.js");
 var hashPassword = function (plainPassword) { return __awaiter(void 0, void 0, void 0, function () {
     var salt;
     return __generator(this, function (_a) {
@@ -140,7 +142,7 @@ exports.allUsers = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { ret
     });
 }); });
 exports.deleteUser = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var id, user;
+    var id, user, userBlogs, blogIds;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -154,8 +156,20 @@ exports.deleteUser = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { r
                 if (!user) {
                     throw new AppError_js_1.AppError("User not found", 404);
                 }
-                return [4 /*yield*/, user.deleteOne()];
+                return [4 /*yield*/, Blog_js_1.default.find({ author: user._id }).select("_id")];
             case 2:
+                userBlogs = _a.sent();
+                blogIds = userBlogs.map(function (blog) { return blog._id; });
+                if (!(blogIds.length > 0)) return [3 /*break*/, 4];
+                return [4 /*yield*/, Comment_js_1.default.deleteMany({ blog: { $in: blogIds } })];
+            case 3:
+                _a.sent();
+                _a.label = 4;
+            case 4: return [4 /*yield*/, Blog_js_1.default.deleteMany({ author: user._id })];
+            case 5:
+                _a.sent();
+                return [4 /*yield*/, User_js_1.User.findByIdAndDelete(id)];
+            case 6:
                 _a.sent();
                 return [2 /*return*/, res.status(200).json({
                         success: true,
@@ -258,8 +272,7 @@ exports.userProfile = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { 
             id: user._id,
             name: user.name,
             email: user.email,
-            role: user.role,
-            avatar: user.avatar
+            avatar: user === null || user === void 0 ? void 0 : user.avatar
         };
         return [2 /*return*/, res.status(200).json({ user: userData })];
     });

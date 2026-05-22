@@ -157,7 +157,7 @@ router.put('/post/:id', authMiddleware_js_1.protect, authorizedUser_js_1.isAutho
 router.delete('/post/:id', authMiddleware_js_1.protect, authorizedUser_js_1.isAuthorized, blogController_js_1.deleteBlogPost);
 /**
 * @swagger
-* /blog/{id}/like:
+* /blog/post/{id}/like:
 *   patch:
 *     summary: Like or unlike a blog post
 *     tags:
@@ -184,5 +184,5 @@ router.delete('/post/:id', authMiddleware_js_1.protect, authorizedUser_js_1.isAu
 *       404:
 *         description: Blog post not found
 */
-router.patch("/:id/like", authMiddleware_js_1.protect, blogController_js_1.toggleLikePost);
+router.patch("/post/:id/like", authMiddleware_js_1.protect, blogController_js_1.toggleLikePost);
 exports.default = router;

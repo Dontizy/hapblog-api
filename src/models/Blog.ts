@@ -1,5 +1,5 @@
 import  { HydratedDocument, Schema, Types, model} from "mongoose";
-import Comment from "./Comment.js"
+import {Comment} from "./Comment.js"
 import type {CallbackWithoutResultAndOptionalError} from "mongoose";
 
 export interface IBlog{
@@ -49,11 +49,6 @@ const blogSchema = new Schema<IBlog>({
     
 })
 
-blogSchema.pre("deleteOne", async function (this: BlogDocument) {
-  await Comment.deleteMany({
-    blog: this._id,
-  });
-});
 
 blogSchema.virtual("commentsCount", {
   ref: "Comment",
@@ -65,5 +60,6 @@ blogSchema.virtual("commentsCount", {
 blogSchema.virtual("likesCount").get(function () {
   return this.likes.length;
 });
+
 const Blog = model("Blog", blogSchema)
 export default Blog;

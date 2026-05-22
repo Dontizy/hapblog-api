@@ -43,6 +43,7 @@ var AppError_js_1 = require("../utils/AppError.js");
 var mongoose_1 = require("mongoose");
 var uploadToCloudinary_js_1 = require("../utils/uploadToCloudinary.js");
 var Comment_js_1 = require("../models/Comment.js");
+var Reply_js_1 = require("../models/Reply.js");
 exports.createBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var _a, title, content, user, userId, blogData, upload, blog;
     return __generator(this, function (_b) {
@@ -152,7 +153,7 @@ exports.updateBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res)
     });
 }); });
 exports.deleteBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var id, blog;
+    var id, blog, comments, commentIds;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -166,8 +167,22 @@ exports.deleteBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res)
                 if (!blog) {
                     throw new AppError_js_1.AppError("Post not found", 404);
                 }
-                return [4 /*yield*/, blog.deleteOne()];
+                return [4 /*yield*/, Comment_js_1.default.find({ blog: blog._id }).select("_id").lean()];
             case 2:
+                comments = _a.sent();
+                commentIds = comments.map(function (comment) { return comment._id; });
+                if (!(commentIds.length > 0)) return [3 /*break*/, 4];
+                return [4 /*yield*/, Reply_js_1.default.deleteMany({
+                        comment: { $in: commentIds }
+                    })];
+            case 3:
+                _a.sent();
+                _a.label = 4;
+            case 4: return [4 /*yield*/, Comment_js_1.default.deleteMany({ blog: blog._id })];
+            case 5:
+                _a.sent();
+                return [4 /*yield*/, Blog_js_1.default.findByIdAndDelete(id)];
+            case 6:
                 _a.sent();
                 return [2 /*return*/, res.status(200).json({ success: true, message: "Blog post deleted successfully" })];
         }
