@@ -27,6 +27,7 @@ export const commentSchema = new Schema<IComment>({
   {
     type: Schema.Types.ObjectId,
     ref: "User",
+    default:[]
   },
 ],
   blog:{
@@ -42,7 +43,8 @@ export const commentSchema = new Schema<IComment>({
   toObject:{virtuals:true},
   })
   
-commentSchema.virtual("repliesCount", {
+
+  commentSchema.virtual("repliesCount", {
   ref: "Reply",
   localField: "_id",
   foreignField: "comment",

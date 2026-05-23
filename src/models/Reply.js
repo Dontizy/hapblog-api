@@ -15,11 +15,12 @@ exports.replySchema = new mongoose_1.Schema({
     },
     likes: [{
             type: mongoose_1.Schema.Types.ObjectId,
-            ref: "User"
+            ref: "User",
+            default: []
         }],
     body: {
         type: String,
-        required: [true, "Comment body is required"],
+        required: [true, "Reply body is required"],
         trim: true
     }
 }, {

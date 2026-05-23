@@ -24,11 +24,12 @@ export const replySchema = new Schema<IReply>({
   },
   likes:[{
     type:Schema.Types.ObjectId,
-    ref:"User"
+    ref:"User",
+    default:[]
   }],
   body:{
       type:String,
-      required:[true, "Comment body is required"],
+      required:[true, "Reply body is required"],
       trim:true
     }
 },{
