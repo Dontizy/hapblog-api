@@ -39,8 +39,14 @@ exports.commentSchema.virtual("repliesCount", {
     foreignField: "comment",
     count: true,
 });
+exports.commentSchema.virtual("replies", {
+    ref: "Reply",
+    localField: "_id",
+    foreignField: "comment",
+});
 exports.commentSchema.virtual("likedCommentCount").get(function () {
-    return this.likes.length;
+    var _a;
+    return ((_a = this.likes) === null || _a === void 0 ? void 0 : _a.length) || 0;
 });
 exports.Comment = (0, mongoose_1.model)("Comment", exports.commentSchema);
 exports.default = exports.Comment;
