@@ -53,10 +53,26 @@ export const fetchComments=asyncHandler(async(req:Request, res:Response)=>{
   if(!blog){
     throw new AppError("Blog post not found", 404)
   }
-  const comments = await Comment.find({blog:id}).sort({ createdAt: -1 }).populate("author", "name avatar")
+  const [comments, commentCount] = await Promise.all([
+  Comment.find({ blog: id })
+    .sort({ createdAt: -1 })
+    .populate("author", "name avatar")
+    .populate("repliesCount")
+    .populate({
+      path: "replies",
+      populate: {
+        path: "author",
+        select: "name avatar",
+      },
+    }),
+
+  Comment.countDocuments({ blog: id }),
+]);
+  
   return res.status(200).json({
     success:true,
-    comments
+    comments,
+    commentCount
   })
 })
 
@@ -153,3 +169,4 @@ export const toggleLikeComment =asyncHandler(async(req:Request, res:Response)=>{
    message:"liked comment"
  })
 })
+

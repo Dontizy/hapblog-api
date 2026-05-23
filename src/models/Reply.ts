@@ -39,7 +39,7 @@ export const replySchema = new Schema<IReply>({
   })
   
 replySchema.virtual("likesCount").get(function () {
-  return this.likes.length;
+   return this.likes?.length || 0;
 });
 
 
