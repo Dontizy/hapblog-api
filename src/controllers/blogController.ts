@@ -38,9 +38,22 @@ export const createBlogPost = asyncHandler(async (req: Request<{}, {}, blogCreat
 })
 
 export const getAllBlogPost = asyncHandler(async (req: Request, res: Response) => {
-    const blog = await Blog.find().sort({ createdAt: -1 }).populate("author", "name email").populate("commentsCount")
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+  
+    const [blogs, totalBlogs] = await Promise.all([Blog.find().sort({ createdAt: -1 }).skip(skip).limit(limit).populate("author", "name email").populate("commentsCount"),
+    Blog.countDocuments()
+    ])
     
-    res.status(200).json(blog)
+    res.status(200).json({
+      success:true,
+      blogs,
+      currentPage: page,
+      totalPages: Math.ceil(totalBlogs / limit),
+      totalBlogs
+      
+    })
 })
 
 export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
@@ -49,15 +62,18 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
         throw new AppError("Invalid blog id", 400)
     }
 
-    const blog = await Blog.findById(id).populate("author", "name email")
+    const [blog, commentCount] = await Promise.all([ Blog.findById(id).populate("author", "name email"),
+     Comment.countDocuments({blog:id})
+    ])
+    
     if (!blog) {
         throw new AppError("Post does not exist", 404)
     }
-    const comment = await Comment.find({blog:id}).populate("author", "name avatar").sort({createdAt:-1})
+    
     return res.status(200).json({
       success:true,
     blog,
-      comment
+      commentCount
     })
 
 })

@@ -77,39 +77,50 @@ exports.createBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res)
     });
 }); });
 exports.getAllBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var blog;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, Blog_js_1.default.find().sort({ createdAt: -1 }).populate("author", "name email").populate("commentsCount")];
+    var page, limit, skip, _a, blogs, totalBlogs;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                page = Number(req.query.page) || 1;
+                limit = Number(req.query.limit) || 10;
+                skip = (page - 1) * limit;
+                return [4 /*yield*/, Promise.all([Blog_js_1.default.find().sort({ createdAt: -1 }).skip(skip).limit(limit).populate("author", "name email").populate("commentsCount"),
+                        Blog_js_1.default.countDocuments()
+                    ])];
             case 1:
-                blog = _a.sent();
-                res.status(200).json(blog);
+                _a = _b.sent(), blogs = _a[0], totalBlogs = _a[1];
+                res.status(200).json({
+                    success: true,
+                    blogs: blogs,
+                    currentPage: page,
+                    totalPages: Math.ceil(totalBlogs / limit),
+                    totalBlogs: totalBlogs
+                });
                 return [2 /*return*/];
         }
     });
 }); });
 exports.getBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var id, blog, comment;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var id, _a, blog, commentCount;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
             case 0:
                 id = req.params.id;
                 if (!mongoose_1.default.isValidObjectId(id)) {
                     throw new AppError_js_1.AppError("Invalid blog id", 400);
                 }
-                return [4 /*yield*/, Blog_js_1.default.findById(id).populate("author", "name email")];
+                return [4 /*yield*/, Promise.all([Blog_js_1.default.findById(id).populate("author", "name email"),
+                        Comment_js_1.default.countDocuments({ blog: id })
+                    ])];
             case 1:
-                blog = _a.sent();
+                _a = _b.sent(), blog = _a[0], commentCount = _a[1];
                 if (!blog) {
                     throw new AppError_js_1.AppError("Post does not exist", 404);
                 }
-                return [4 /*yield*/, Comment_js_1.default.find({ blog: id }).populate("author", "name avatar").sort({ createdAt: -1 })];
-            case 2:
-                comment = _a.sent();
                 return [2 /*return*/, res.status(200).json({
                         success: true,
                         blog: blog,
-                        comment: comment
+                        commentCount: commentCount
                     })];
         }
     });

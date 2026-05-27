@@ -85,26 +85,34 @@ exports.createComment = (0, asyncHandler_js_1.asyncHandler)(function (req, res) 
     });
 }); });
 exports.fetchComments = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var id, blog, comments;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var id, page, limit, skip, blog, _a, comments, totalComments;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
             case 0:
                 id = req.params.id;
+                page = Number(req.query.page) || 1;
+                limit = Number(req.query.limit) || 10;
+                skip = (page - 1) * limit;
                 if (!mongoose_1.default.isValidObjectId(id)) {
                     throw new AppError_js_1.AppError("Invalid blog post ID", 400);
                 }
                 return [4 /*yield*/, Blog_js_1.default.findById(id)];
             case 1:
-                blog = _a.sent();
+                blog = _b.sent();
                 if (!blog) {
                     throw new AppError_js_1.AppError("Blog post not found", 404);
                 }
-                return [4 /*yield*/, Comment_js_1.default.find({ blog: id }).sort({ createdAt: -1 }).populate("author", "name avatar")];
+                return [4 /*yield*/, Promise.all([Comment_js_1.default.find({ blog: id }).sort({ createdAt: -1 }).populate("author", "name avatar").skip(skip).limit(limit),
+                        Comment_js_1.default.countDocuments({ blog: id })
+                    ])];
             case 2:
-                comments = _a.sent();
+                _a = _b.sent(), comments = _a[0], totalComments = _a[1];
                 return [2 /*return*/, res.status(200).json({
                         success: true,
-                        comments: comments
+                        comments: comments,
+                        totalComments: totalComments,
+                        currentPage: page,
+                        totalPages: Math.ceil(totalComments / limit)
                     })];
         }
     });

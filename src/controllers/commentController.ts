@@ -14,9 +14,13 @@ export const createComment=asyncHandler(async(req:Request<{}, {}, createCommentT
   const {body} = req.body
   const {id} = req.params as {id:string}
   const user = req.user
-  
+  const userId = user._id
   if(!body?.trim()){
     throw new AppError("Comment body can't be empty", 400)
+  }
+  
+  if(!mongoose.isValidObjectId(userId)){
+    throw new AppError("Invalid user ID", 400)
   }
   
   if(!mongoose.isValidObjectId(id)){
@@ -25,7 +29,6 @@ export const createComment=asyncHandler(async(req:Request<{}, {}, createCommentT
   if(!user) {
   throw new AppError("Unauthorized", 401)
 }
-const userId = user._id
   
   const blog = await Blog.findById(id)
   if(!blog){
@@ -46,6 +49,10 @@ const userId = user._id
 
 export const fetchComments=asyncHandler(async(req:Request, res:Response)=>{
   const {id} = req.params as { id:string }
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const skip = ( page - 1 ) * limit;
+  
   if(!mongoose.isValidObjectId(id)){
     throw new AppError("Invalid blog post ID", 400)
   }
@@ -53,26 +60,16 @@ export const fetchComments=asyncHandler(async(req:Request, res:Response)=>{
   if(!blog){
     throw new AppError("Blog post not found", 404)
   }
-  const [comments, commentCount] = await Promise.all([
-  Comment.find({ blog: id })
-    .sort({ createdAt: -1 })
-    .populate("author", "name avatar")
-    .populate("repliesCount")
-    .populate({
-      path: "replies",
-      populate: {
-        path: "author",
-        select: "name avatar",
-      },
-    }),
-
-  Comment.countDocuments({ blog: id }),
-]);
+  const [ comments, totalComments ]= await Promise.all([Comment.find({blog:id}).sort({ createdAt: -1 }).populate("author", "name avatar").skip(skip).limit(limit),
+   Comment.countDocuments({blog:id})
+  ])
   
   return res.status(200).json({
     success:true,
     comments,
-    commentCount
+    totalComments,
+    currentPage:page,
+    totalPages:Math.ceil(totalComments / limit)
   })
 })
 
@@ -169,4 +166,3 @@ export const toggleLikeComment =asyncHandler(async(req:Request, res:Response)=>{
    message:"liked comment"
  })
 })
-
