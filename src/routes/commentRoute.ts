@@ -2,7 +2,7 @@ import {Router} from "express";
 import {protect} from "../middleware/authMiddleware.js"
 import {createComment, fetchComments, updateComment, deleteComment, toggleLikeComment} from "../controllers/commentController.js";
 import {isCommentAuthorOrAdmin, isCommentAuthor, isReplyAuthorOrAdmin, isReplyAuthor} from "../middleware/authorizedUser.js"
-import { createReply, updateReply,toggleReplyLike, deleteReply } from "../controllers/replyController.js"
+import { createReply, updateReply,toggleReplyLike, deleteReply, fetchReplies } from "../controllers/replyController.js"
 
 const router = Router()
 
@@ -141,7 +141,7 @@ router.patch("/:id/comment/:commentId", protect, isCommentAuthor, updateComment)
  *         description: Unauthorized
  */
  
- 
+ router.delete("/blog/:id/comment/:commentId", protect, isCommentAuthorOrAdmin, deleteComment)
 /**
  * @swagger
  * /blog/{id}/comment/{commentId}/like:
@@ -301,3 +301,40 @@ router.patch("/comment/:id/reply/:replyId", protect, isReplyAuthor, updateReply)
 
  router.patch("/comment/:id/reply/:replyId/like", protect, toggleReplyLike)
 export default router
+
+/**
+
+* @swagger
+* /blog/comment/{commentId}/replies:
+* get:
+* summary: Get replies for a comment
+* tags:
+*   - Replies
+* parameters:
+*   - in: path
+*     name: commentId
+*     required: true
+*     schema:
+*       type: string
+*     description: Comment ID
+*   - in: query
+*     name: page
+*     schema:
+*       type: integer
+*       default: 1
+*   - in: query
+*     name: limit
+*     schema:
+*       type: integer
+*       default: 10
+* responses:
+*   200:
+*     description: Replies fetched successfully
+*   400:
+*     description: Invalid comment ID
+*   404:
+*     description: Comment not found
+
+*/
+
+router.get("/blog/comment/:commentId/replies", fetchReplies)

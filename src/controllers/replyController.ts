@@ -33,6 +33,33 @@ export const createReply = asyncHandler(async(req:Request, res:Response)=>{
   })
 })
 
+ export const fetchReplies = asyncHandler(async(req:Request, res:Response)=>{
+   const {commentId} = req.params as { commentId:string }
+   
+   const page = Math.max(1, Number(req.query.page) || 1);
+   const limit = Math.max(1, Number(req.query.limit) || 10);
+   const skip = (page - 1) * limit;
+   
+   if(!mongoose.isValidObjectId(commentId)) {
+     throw new AppError("Invalid comment ID", 400)
+   }
+   const comment = await Comment.exists({_id:commentId})
+   if(!comment){
+      throw new AppError("Comment not found", 404)
+   }
+   const [replies, totalReplies] = await Promise.all([
+     Reply.find({ comment:commentId }).populate("author", "avatar name").sort({ createdAt: -1 }).skip(skip).limit(limit),
+     Reply.countDocuments({comment:commentId})
+   ])
+   
+   return res.status(200).json({
+     totalReplies,
+     replies,
+     currentPage:page,
+     totalPages: Math.ceil(totalReplies / limit)
+   })
+ })
+
 export const updateReply = asyncHandler(async(req:Request, res:Response)=>{
   const {id, replyId} = req.params as { id:string; replyId:string; }
   const { body } = req.body as { body:string}
@@ -145,5 +172,3 @@ export const toggleReplyLike = asyncHandler(
     });
   }
 );
-
-
