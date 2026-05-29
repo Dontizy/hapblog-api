@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { createBlogPost, getAllBlogPost, getBlogPost, updateBlogPost, deleteBlogPost, toggleLikePost } from "../controllers/blogController.js";
+import {toggleBookmark, getBookmarks} from "../controllers/bookmarkController.js"
 import { protect } from "../middleware/authMiddleware.js";
 import { upload } from "../utils/uploader.js";
 import { isAuthorized } from "../middleware/authorizedUser.js";
@@ -192,5 +193,54 @@ router.delete('/post/:id', protect, isAuthorized, deleteBlogPost)
  
  router.patch("/post/:id/like", protect, toggleLikePost)
  
+  /**
+ * @swagger
+ * /blog/{id}/bookmark:
+ *   patch:
+ *     summary: Toggle bookmark on a blog post
+ *     tags:
+ *       - Blogs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Bookmark toggled successfully
+ *       400:
+ *         description: Invalid blog id
+ *       404:
+ *         description: Blog or user not found
+ */
+ router.patch(
+  "/:id/bookmark",
+  protect,
+  toggleBookmark
+);
+
+/**
+ * @swagger
+ * /blog/bookmarks:
+ *   get:
+ *     summary: Get authenticated user's bookmarked blog posts
+ *     tags:
+ *       - Blogs
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User bookmarks fetched successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  "/bookmarks",
+  protect,
+  getBookmarks
+);
 export default router;
 

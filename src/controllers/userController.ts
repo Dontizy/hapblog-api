@@ -11,6 +11,8 @@ import uploadToCloudinary from "../utils/uploadToCloudinary.js";
 import { UploadApiResponse } from "cloudinary";
 import {v2 as cloudinary} from "cloudinary"
 import Comment from "../models/Comment.js"
+import crypto from "crypto";
+import { resend } from "../config/resend.js";
 
 const hashPassword = async (plainPassword: string) => {
     const salt = await bcrypt.genSalt(10);
@@ -166,7 +168,8 @@ export const userProfile = asyncHandler(async(req:Request, res:Response)=>{
     id:user._id,
     name:user.name,
     email:user.email,
-    avatar:user?.avatar
+    avatar:user?.avatar,
+    role:user.role
   }
   return res.status(200).json({user:userData})
 })
@@ -197,3 +200,129 @@ if (user.avatarPublicId) {
     user
   })
 })
+
+
+export const forgotPassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email } = req.body as { email:string };
+
+    if (!email) {
+      throw new AppError(
+        "Email is required",
+        400
+      );
+    }
+
+    const user = await User.findOne({
+      email,
+    })
+
+    if (!user) {
+      throw new AppError(
+        "User not found",
+        404
+      );
+    }
+
+    // generate raw token
+    const resetToken = crypto
+      .randomBytes(32)
+      .toString("hex");
+
+    // hash token
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    // save hashed token
+    user.resetPasswordToken =
+      hashedToken;
+
+    // expires in 10 mins
+    user.resetPasswordExpire = new Date(
+      Date.now() + 10 * 60 * 1000
+    );
+
+    await user.save();
+
+    const resetUrl =
+      `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+
+    await resend.emails.send({
+      from: "Hapblog <onboarding@resend.dev>",
+      to: user.email,
+      subject: "Reset Password",
+      html: `
+        <h2>Password Reset</h2>
+
+        <p>
+          Click the link below to reset your password
+        </p>
+
+        <a href="${resetUrl}">
+          Reset Password
+        </a>
+      `,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Password reset link sent to your email",
+    });
+  }
+);
+
+
+export const resetPassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { token } = req.params as { token:string };
+    const { password } = req.body as { password:string };
+
+    if (!password) {
+      throw new AppError(
+        "Password is required",
+        400
+      );
+    }
+
+    // hash incoming token
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    // find user
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: {
+        $gt: new Date(),
+      },
+    }).select(
+      "+resetPasswordToken +resetPasswordExpire +password"
+    );
+
+    if (!user) {
+      throw new AppError(
+        "Invalid or expired token",
+        400
+      );
+    }
+
+
+    user.password = await hashPassword(password);
+
+    // clear reset fields
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Password reset successful",
+    });
+  }
+);

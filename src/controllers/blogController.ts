@@ -41,8 +41,26 @@ export const getAllBlogPost = asyncHandler(async (req: Request, res: Response) =
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.max(1, Number(req.query.limit) || 10);
   const skip = (page - 1) * limit;
-  
-    const [blogs, totalBlogs] = await Promise.all([Blog.find().sort({ createdAt: -1 }).skip(skip).limit(limit).populate("author", "name email").populate("commentsCount"),
+  const search = req.query.search as { search:string }
+  const query:any = {}
+    if(search){
+      query.$or = [
+        {
+          title:{
+            $regex:search,
+            $options:"i",
+          }
+        },
+         {
+          content:{
+          $regex:search,
+          $options:"i",
+          }
+        }
+      ]
+    }
+    
+    const [blogs, totalBlogs] = await Promise.all([Blog.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).populate("author", "name email").populate("commentsCount"),
     Blog.countDocuments()
     ])
     

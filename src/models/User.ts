@@ -1,4 +1,4 @@
-import mongoose, {Document, Schema, model, HydratedDocument} from "mongoose";
+import mongoose, {Document, Schema, model, HydratedDocument, Types} from "mongoose";
 import Blog from "./Blog.js"
 
 export interface IUser {
@@ -8,6 +8,9 @@ export interface IUser {
     avatar?:string;
     avatarPublicId?:string;
     password:string;
+    bookmarks: Types.ObjectId[];
+    resetPasswordToken?: string | undefined;
+    resetPasswordExpire?: Date | undefined;
   
 }
 
@@ -45,10 +48,25 @@ const userSchema = new Schema<IUser>({
         trim:true,
         minlength:5,
         select:false
+    },
+    bookmarks: [
+  {
+    type: Schema.Types.ObjectId,
+    ref: "Blog",
+  },
+],
+    resetPasswordToken:{
+      type:String,
+      select:false
+    },
+    resetPasswordExpire:{
+      type:Date,
+      select:false
     }
 },{
     timestamps:true
 })
+
 
 
 export const User = model<IUser>('User', userSchema)

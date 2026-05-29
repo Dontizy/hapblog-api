@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {register,login, deleteUser, allUsers, changePassword, addOrRemoveAdmin, userProfile, avatarUpdate} from '../controllers/userController.js'
+import {register,login, deleteUser, allUsers, changePassword, addOrRemoveAdmin, userProfile, avatarUpdate, forgotPassword, resetPassword} from '../controllers/userController.js'
 import { protect } from "../middleware/authMiddleware.js";
 import { isAdmin } from "../middleware/authorizedUser.js";
 import {upload} from "../utils/uploader.js"
@@ -79,7 +79,7 @@ router.post('/login', login)
 
 /**
  * @openapi
- * /user/delete/{id}:
+ * /user/auth/delete/{id}:
  *   delete:
  *     summary: Admin delete a user
  *     description: An admin delete a user and all blogs associated with the user
@@ -107,11 +107,11 @@ router.post('/login', login)
  *         description: User not found
  */
 
-router.delete('/delete/:id', protect, isAdmin, deleteUser)
+router.delete('/auth/delete/:id', protect, isAdmin, deleteUser)
 
 /**
  * @openapi
- * /user/all:
+ * /user/auth/users:
  *   get:
  *     summary: Get all users
  *     description: Retrieve all users (Admin only)
@@ -127,11 +127,11 @@ router.delete('/delete/:id', protect, isAdmin, deleteUser)
  *       403:
  *         description: Only admin allowed
  */
-router.get('/all', protect, isAdmin, allUsers)
+router.get('/auth/users', protect, isAdmin, allUsers)
 
 /**
  * @openapi
- * /password/update:
+ * /user/auth/password-update:
  *   put:
  *     summary: Update user password
  *     description: Change the authenticated user's password
@@ -165,11 +165,11 @@ router.get('/all', protect, isAdmin, allUsers)
  *       404:
  *         description: User not found
  */
-router.put('/password/update', protect, changePassword)
+router.put('/auth/password-update', protect, changePassword)
 
 /**
  * @swagger
- * /user/admin/{id}:
+ * /user/auth/admin/{id}:
  *   patch:
  *     summary: Add or remove admin role
  *     tags:
@@ -191,10 +191,10 @@ router.put('/password/update', protect, changePassword)
  *       404:
  *         description: User not found
  */
- router.patch("/admin/:id", protect, isAdmin, addOrRemoveAdmin)
+ router.patch("/auth/admin/:id", protect, isAdmin, addOrRemoveAdmin)
  /**
  * @swagger
- * /user/profile:
+ * /user/auth/profile:
  *   get:
  *     summary: Get current user profile
  *     tags:
@@ -207,10 +207,10 @@ router.put('/password/update', protect, changePassword)
  *       404:
  *         description: User not found
  */
- router.get("/profile", protect, userProfile)
+ router.get("/auth/profile", protect, userProfile)
  /**
  * @swagger
- * /user/avatar:
+ * /user/auth/avatar:
  *   patch:
  *     summary: Update user avatar
  *     tags:
@@ -237,6 +237,67 @@ router.put('/password/update', protect, changePassword)
  *       404:
  *         description: User not found
  */
- router.patch("/avatar", protect, upload.single("avatar"), avatarUpdate)
+ router.patch("/auth/avatar", protect, upload.single("avatar"), avatarUpdate)
  
+ /**
+ * @swagger
+ * /user/auth/forgot-password:
+ *   post:
+ *     summary: Send password reset email
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: johndoe@gmail.com
+ *     responses:
+ *       200:
+ *         description: Password reset email sent
+ *       404:
+ *         description: User not found
+ */
+ router.post("/auth/forgot-password", forgotPassword)
+ 
+ /**
+ * @swagger
+ * /user/auth/reset-password/{token}:
+ *   post:
+ *     summary: Reset user password
+ *     tags:
+ *       - Auth
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 example: newpassword123
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *       400:
+ *         description: Invalid or expired token
+ */
+ router.post("/auth/reset-password/:token", resetPassword)
+ 
+
 export default router
