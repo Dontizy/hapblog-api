@@ -18,7 +18,8 @@ const hashPassword = async (plainPassword: string) => {
     const salt = await bcrypt.genSalt(10);
     return bcrypt.hash(plainPassword, salt);
 };
-
+RESEND_API_KEY=re_BcVLjg1r_Bpx7kTDqML7AWoXn97n1Zg8o
+CLIENT_URL=localhost:5173/
 //Register controller
 export const register = asyncHandler(async (req: Request<{}, {}, registerType>, res: Response) => {
     const { name, email, password } = req.body;
