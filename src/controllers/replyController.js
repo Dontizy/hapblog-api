@@ -36,12 +36,13 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toggleReplyLike = exports.deleteReply = exports.updateReply = exports.createReply = void 0;
+exports.toggleReplyLike = exports.deleteReply = exports.updateReply = exports.fetchReplies = exports.createReply = void 0;
 var Reply_js_1 = require("../models/Reply.js");
 var Comment_js_1 = require("../models/Comment.js");
 var AppError_js_1 = require("../utils/AppError.js");
 var asyncHandler_js_1 = require("../utils/asyncHandler.js");
 var mongoose_1 = require("mongoose");
+var createNotification_js_1 = require("../utils/createNotification.js");
 exports.createReply = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var commentId, comment, body, user, userId, reply;
     return __generator(this, function (_a) {
@@ -69,10 +70,53 @@ exports.createReply = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { 
                 return [4 /*yield*/, Reply_js_1.default.create({ author: userId, comment: comment._id, body: body.trim() })];
             case 2:
                 reply = _a.sent();
+                return [4 /*yield*/, (0, createNotification_js_1.createNotification)({
+                        recipient: comment.author.toString(),
+                        sender: userId,
+                        type: "reply",
+                        blog: comment.blog.toString(),
+                        comment: comment._id.toString(),
+                        reply: reply._id.toString(),
+                    })];
+            case 3:
+                _a.sent();
                 return [2 /*return*/, res.status(201).json({
                         success: true,
                         message: "Reply sent successfully",
                         reply: reply
+                    })];
+        }
+    });
+}); });
+exports.fetchReplies = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var commentId, page, limit, skip, comment, _a, replies, totalReplies;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                commentId = req.params.commentId;
+                page = Math.max(1, Number(req.query.page) || 1);
+                limit = Math.max(1, Number(req.query.limit) || 10);
+                skip = (page - 1) * limit;
+                if (!mongoose_1.default.isValidObjectId(commentId)) {
+                    throw new AppError_js_1.AppError("Invalid comment ID", 400);
+                }
+                return [4 /*yield*/, Comment_js_1.default.exists({ _id: commentId })];
+            case 1:
+                comment = _b.sent();
+                if (!comment) {
+                    throw new AppError_js_1.AppError("Comment not found", 404);
+                }
+                return [4 /*yield*/, Promise.all([
+                        Reply_js_1.default.find({ comment: commentId }).populate("author", "avatar name").sort({ createdAt: -1 }).skip(skip).limit(limit),
+                        Reply_js_1.default.countDocuments({ comment: commentId })
+                    ])];
+            case 2:
+                _a = _b.sent(), replies = _a[0], totalReplies = _a[1];
+                return [2 /*return*/, res.status(200).json({
+                        totalReplies: totalReplies,
+                        replies: replies,
+                        currentPage: page,
+                        totalPages: Math.ceil(totalReplies / limit)
                     })];
         }
     });
@@ -150,7 +194,7 @@ exports.deleteReply = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { 
     });
 }); });
 exports.toggleReplyLike = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, id, replyId, userId, reply, hasLiked;
+    var _a, id, replyId, userId, comment, reply, hasLiked;
     var _b;
     var _c;
     return __generator(this, function (_d) {
@@ -158,34 +202,55 @@ exports.toggleReplyLike = (0, asyncHandler_js_1.asyncHandler)(function (req, res
             case 0:
                 _a = req.params, id = _a.id, replyId = _a.replyId;
                 userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+                return [4 /*yield*/, Comment_js_1.default.findById(id)];
+            case 1:
+                comment = _d.sent();
                 if (!mongoose_1.default.isValidObjectId(id) ||
                     !mongoose_1.default.isValidObjectId(replyId)) {
                     throw new AppError_js_1.AppError("Invalid comment or reply ID", 400);
+                }
+                if (!userId) {
+                    throw new AppError_js_1.AppError("User not authorized", 401);
+                }
+                if (!comment) {
+                    throw new AppError_js_1.AppError("Comment not found", 404);
                 }
                 return [4 /*yield*/, Reply_js_1.default.findOne({
                         _id: replyId,
                         comment: id,
                     })];
-            case 1:
+            case 2:
                 reply = _d.sent();
                 if (!reply) {
                     throw new AppError_js_1.AppError("Reply not found", 404);
                 }
-                hasLiked = reply.likes.some(function (like) { return like.toString() === (userId === null || userId === void 0 ? void 0 : userId.toString()); });
+                hasLiked = reply.likes.some(function (like) { return like.toString() === userId.toString(); });
                 return [4 /*yield*/, Reply_js_1.default.findByIdAndUpdate(replyId, (_b = {},
                         _b[hasLiked ? "$pull" : "$addToSet"] = {
                             likes: userId,
                         },
                         _b))];
-            case 2:
+            case 3:
                 _d.sent();
-                return [2 /*return*/, res.status(200).json({
-                        success: true,
-                        liked: !hasLiked,
-                        message: hasLiked
-                            ? "Reply unliked successfully"
-                            : "Reply liked successfully",
+                if (!!hasLiked) return [3 /*break*/, 5];
+                return [4 /*yield*/, (0, createNotification_js_1.createNotification)({
+                        recipient: reply.author.toString(),
+                        sender: userId.toString(),
+                        type: "reply_like",
+                        blog: comment.blog.toString(),
+                        comment: comment._id.toString(),
+                        reply: reply._id.toString(),
                     })];
+            case 4:
+                _d.sent();
+                _d.label = 5;
+            case 5: return [2 /*return*/, res.status(200).json({
+                    success: true,
+                    liked: !hasLiked,
+                    message: hasLiked
+                        ? "Reply unliked successfully"
+                        : "Reply liked successfully",
+                })];
         }
     });
 }); });

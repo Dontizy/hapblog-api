@@ -4,6 +4,8 @@ import Comment from "../models/Comment.js"
 import {AppError} from "../utils/AppError.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import mongoose from "mongoose"
+import Notification from "../models/Notification.js"
+import {createNotification} from '../utils/createNotification.js'
 
 export const createReply = asyncHandler(async(req:Request, res:Response)=>{
   const {commentId} = req.params as { commentId:string}
@@ -26,6 +28,16 @@ export const createReply = asyncHandler(async(req:Request, res:Response)=>{
   }
   const userId = user._id
    const reply = await Reply.create({ author:userId, comment:comment._id, body:body.trim() })
+   
+ await createNotification({
+  recipient: comment.author.toString(),
+  sender: userId,
+  type: "reply",
+  blog: comment.blog.toString(),
+  comment: comment._id.toString(),
+  reply: reply._id.toString(),
+});
+   
   return res.status(201).json({
     success:true,
     message:"Reply sent successfully",
@@ -136,14 +148,19 @@ export const toggleReplyLike = asyncHandler(
     };
 
     const userId = req.user?._id;
-
+    const comment = await Comment.findById(id)
     if (
       !mongoose.isValidObjectId(id) ||
       !mongoose.isValidObjectId(replyId)
     ) {
       throw new AppError("Invalid comment or reply ID", 400);
     }
-
+    if(!userId){
+      throw new AppError("User not authorized", 401)
+    }
+    if(!comment){
+      throw new AppError("Comment not found", 404)
+    }
     const reply = await Reply.findOne({
       _id: replyId,
       comment: id,
@@ -154,15 +171,25 @@ export const toggleReplyLike = asyncHandler(
     }
 
     const hasLiked = reply.likes.some(
-      (like) => like.toString() === userId?.toString()
-    );
+  (like) => like.toString() === userId.toString()
+);
 
-    await Reply.findByIdAndUpdate(replyId, {
-      [hasLiked ? "$pull" : "$addToSet"]: {
-        likes: userId,
-      },
-    });
+await Reply.findByIdAndUpdate(replyId, {
+  [hasLiked ? "$pull" : "$addToSet"]: {
+    likes: userId,
+  },
+});
 
+if (!hasLiked) {
+  await createNotification({
+    recipient: reply.author.toString(),
+    sender: userId.toString(),
+    type: "reply_like",
+    blog: comment.blog.toString(),
+    comment: comment._id.toString(),
+    reply: reply._id.toString(),
+  });
+}
     return res.status(200).json({
       success: true,
       liked: !hasLiked,

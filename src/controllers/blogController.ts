@@ -9,7 +9,8 @@ import uploadToCloudinary from "../utils/uploadToCloudinary.js";
 import { UploadApiResponse } from "cloudinary";
 import Comment from "../models/Comment.js"
 import Reply from "../models/Reply.js"
-
+import {createNotification} from "../utils/createNotification.js"
+import Notification from "../models/Notification.js"
 
 export const createBlogPost = asyncHandler(async (req: Request<{}, {}, blogCreateType>, res: Response) => {
 
@@ -38,29 +39,11 @@ export const createBlogPost = asyncHandler(async (req: Request<{}, {}, blogCreat
 })
 
 export const getAllBlogPost = asyncHandler(async (req: Request, res: Response) => {
-  const page = Math.max(1, Number(req.query.page) || 1);
-  const limit = Math.max(1, Number(req.query.limit) || 10);
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
   const skip = (page - 1) * limit;
-  const search = req.query.search as { search:string }
-  const query:any = {}
-    if(search){
-      query.$or = [
-        {
-          title:{
-            $regex:search,
-            $options:"i",
-          }
-        },
-         {
-          content:{
-          $regex:search,
-          $options:"i",
-          }
-        }
-      ]
-    }
-    
-    const [blogs, totalBlogs] = await Promise.all([Blog.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).populate("author", "name email").populate("commentsCount"),
+  
+    const [blogs, totalBlogs] = await Promise.all([Blog.find().sort({ createdAt: -1 }).skip(skip).limit(limit).populate("author", "name email").populate("commentsCount"),
     Blog.countDocuments()
     ])
     
@@ -166,19 +149,30 @@ export const toggleLikePost =asyncHandler(async(req:Request, res:Response)=>{
   }
   const alreadyLiked = blog.likes.some((like)=> like.toString() === userId.toString())
   
-  if(alreadyLiked){
-   blog.likes = blog.likes.filter((like)=> like.toString() !== userId.toString())
-   await blog.save()
-   return res.status(200).json({
-     success:true,
-     message:"Unliked blog post"
-   })
-  }
   
-  blog.likes.push(userId)
- await blog.save()
+  const hasLiked = blog.likes.some(
+  (like) => like.toString() === userId.toString()
+);
+
+await Blog.findByIdAndUpdate(id, {
+  [hasLiked ? "$pull" : "$addToSet"]: {
+    likes: userId,
+  },
+});
+
+if (!hasLiked) {
+  await createNotification({
+    recipient: blog.author.toString(),
+    sender: userId.toString(),
+    type: "blog_like",
+    blog: blog._id.toString(),
+  });
+}
+
  return res.status(200).json({
-   success:true,
-   message:"liked blog post"
- })
+  success: true,
+  message: hasLiked
+    ? "Post unliked successfully"
+    : "Post liked successfully",
+});
 })

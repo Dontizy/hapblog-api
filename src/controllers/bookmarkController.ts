@@ -3,6 +3,7 @@ import User from "../models/User.js"
 import Blog from "../models/Blog.js"
 import { AppError } from "../utils/AppError.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
+import type {Request, Response} from "express"
 
 
 export const getBookmarks =
@@ -11,9 +12,12 @@ export const getBookmarks =
       req: Request,
       res: Response
     ) => {
-
+    const userId = req.user?.id
+     if(!userId){
+       throw new AppError("User not found", 404)
+     }
       const user = await User.findById(
-        req.user.id
+        userId
       ).populate({
         path: "bookmarks",
         populate: {
@@ -40,7 +44,7 @@ export const toggleBookmark =
         id: string;
       };
 
-      const userId = req.user.id;
+      const userId = req.user?.id;
 
       if (
         !mongoose.isValidObjectId(id)

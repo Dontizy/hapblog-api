@@ -44,6 +44,7 @@ var mongoose_1 = require("mongoose");
 var uploadToCloudinary_js_1 = require("../utils/uploadToCloudinary.js");
 var Comment_js_1 = require("../models/Comment.js");
 var Reply_js_1 = require("../models/Reply.js");
+var createNotification_js_1 = require("../utils/createNotification.js");
 exports.createBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var _a, title, content, user, userId, blogData, upload, blog;
     return __generator(this, function (_b) {
@@ -200,9 +201,10 @@ exports.deleteBlogPost = (0, asyncHandler_js_1.asyncHandler)(function (req, res)
     });
 }); });
 exports.toggleLikePost = (0, asyncHandler_js_1.asyncHandler)(function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var id, user, userId, blog, alreadyLiked;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var id, user, userId, blog, alreadyLiked, hasLiked;
+    var _a;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
             case 0:
                 id = req.params.id;
                 user = req.user;
@@ -215,29 +217,35 @@ exports.toggleLikePost = (0, asyncHandler_js_1.asyncHandler)(function (req, res)
                 }
                 return [4 /*yield*/, Blog_js_1.default.findById(id)];
             case 1:
-                blog = _a.sent();
+                blog = _b.sent();
                 if (!blog) {
                     throw new AppError_js_1.AppError("Blog post not found", 404);
                 }
                 alreadyLiked = blog.likes.some(function (like) { return like.toString() === userId.toString(); });
-                if (!alreadyLiked) return [3 /*break*/, 3];
-                blog.likes = blog.likes.filter(function (like) { return like.toString() !== userId.toString(); });
-                return [4 /*yield*/, blog.save()];
+                hasLiked = blog.likes.some(function (like) { return like.toString() === userId.toString(); });
+                return [4 /*yield*/, Blog_js_1.default.findByIdAndUpdate(id, (_a = {},
+                        _a[hasLiked ? "$pull" : "$addToSet"] = {
+                            likes: userId,
+                        },
+                        _a))];
             case 2:
-                _a.sent();
-                return [2 /*return*/, res.status(200).json({
-                        success: true,
-                        message: "Unliked blog post"
+                _b.sent();
+                if (!!hasLiked) return [3 /*break*/, 4];
+                return [4 /*yield*/, (0, createNotification_js_1.createNotification)({
+                        recipient: blog.author.toString(),
+                        sender: userId.toString(),
+                        type: "blog_like",
+                        blog: blog._id.toString(),
                     })];
             case 3:
-                blog.likes.push(userId);
-                return [4 /*yield*/, blog.save()];
-            case 4:
-                _a.sent();
-                return [2 /*return*/, res.status(200).json({
-                        success: true,
-                        message: "liked blog post"
-                    })];
+                _b.sent();
+                _b.label = 4;
+            case 4: return [2 /*return*/, res.status(200).json({
+                    success: true,
+                    message: hasLiked
+                        ? "Post unliked successfully"
+                        : "Post liked successfully",
+                })];
         }
     });
 }); });

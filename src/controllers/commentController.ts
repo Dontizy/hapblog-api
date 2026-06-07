@@ -6,8 +6,8 @@ import User from "../models/User.js"
 import Blog from "../models/Blog.js"
 import Comment from "../models/Comment.js"
 import {createCommentType} from "../types/commentTypes.js"
-
-
+import {createNotification} from "../utils/createNotification.js"
+import Notification from "../models/Notification.js"
 
 
 export const createComment=asyncHandler(async(req:Request<{}, {}, createCommentType>, res:Response)=>{
@@ -37,6 +37,14 @@ const userId = user._id
     blog:blog._id,
     body:body.trim()
   })
+  
+  await createNotification({
+  recipient: blog.author.toString(),
+  sender: userId,
+  type: "comment",
+  blog: blog._id.toString(),
+  comment: comment._id.toString(),
+});
   return res.status(201).json({
     success:true,
     message:"Comment created successfully",
@@ -157,22 +165,32 @@ export const toggleLikeComment =asyncHandler(async(req:Request, res:Response)=>{
   if(!comment){
     throw new AppError("Blog post comment not found", 404)
   }
-  const alreadyLiked = comment.likes.some((like)=> like.toString() === userId.toString())
   
-  if(alreadyLiked){
-   comment.likes = comment.likes.filter((like)=> like.toString() !== userId.toString())
-   await comment.save()
-   return res.status(200).json({
-     success:true,
-     message:"Unliked comment"
-   })
-  }
-  
-  comment.likes.push(userId)
- await comment.save()
+  const hasLiked = comment.likes.some(
+  (like) => like.toString() === userId.toString()
+);
+
+await Comment.findByIdAndUpdate(commentId, {
+  [hasLiked ? "$pull" : "$addToSet"]: {
+    likes: userId,
+  },
+});
+
+if (!hasLiked) {
+  await createNotification({
+    recipient: comment.author.toString(),
+    sender: userId.toString(),
+    type: "comment_like",
+    blog: comment.blog.toString(),
+    comment: comment._id.toString(),
+  });
+}
+
  return res.status(200).json({
    success:true,
-   message:"liked comment"
+   message: hasLiked
+  ? "Comment unliked successfully"
+  : "Comment liked successfully"
  })
 })
 
