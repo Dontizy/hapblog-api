@@ -8,12 +8,19 @@ import swaggerUi from 'swagger-ui-express'
 import { swaggerSpec } from './config/swagger.js';
 import errorHandler from './middleware/errorHandlerMiddleWare.js';
 import commentRoute from "./routes/commentRoute.js"
+import cors from 'cors';
 
 const app = express();
 
 const port = Number(process.env.PORT) || 3000;
-app.use(express.json())
+app.use(
+    cors({
+        origin: process.env.CLIENT_URL,
+        credentials: true,
+    })
+);
 app.use(express.urlencoded({extended:true}))
+app.use(express.json())
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 app.use('/user', userRoute)
 app.use('/blog', blogRoute)
