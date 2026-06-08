@@ -58,7 +58,7 @@ blogSchema.virtual("commentsCount", {
 });
 
 blogSchema.virtual("likesCount").get(function () {
-  return this.likes.length;
+  return this.likes?.length;
 });
 
 const Blog = model("Blog", blogSchema)

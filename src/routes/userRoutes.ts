@@ -3,6 +3,7 @@ import {register,login, deleteUser, allUsers, changePassword, addOrRemoveAdmin, 
 import { protect } from "../middleware/authMiddleware.js";
 import { isAdmin } from "../middleware/authorizedUser.js";
 import {upload} from "../utils/uploader.js"
+import {getNotifications, markNotificationAsRead, openNotification} from "../controllers/notificationController.js"
 
 
 const router = Router();
@@ -299,5 +300,94 @@ router.put('/auth/password-update', protect, changePassword)
  */
  router.post("/auth/reset-password/:token", resetPassword)
  
+/**
+ * @swagger
+ * /user/auth/notifications:
+ *   get:
+ *     summary: Get user notifications
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Notifications retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 notifications:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Notification'
+ *                 unreadCount:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/auth/notifications", protect, getNotifications)
+
+/**
+ * @swagger
+ * /user/auth/notifications/{id}/read:
+ *   patch:
+ *     summary: Mark a notification as read
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: notificationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Notification marked as read
+ *       404:
+ *         description: Notification not found
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.patch("/auth/notifications/:id/read", protect, markNotificationAsRead)
+
+/**
+ * @swagger
+ * /user/auth/notifications/{id}/open:
+ *   get:
+ *     summary: Open a notification and mark it as read
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Notification opened successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 blogId:
+ *                   type: string
+ *       404:
+ *         description: Notification not found
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/auth/notifications/:id/open", protect, openNotification)
 
 export default router
