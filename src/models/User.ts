@@ -89,10 +89,28 @@ const userSchema = new Schema<IUser>({
       select:false
     }
 },{
-    timestamps:true
+    timestamps:true,
+     toJSON: {
+      virtuals: true,
+    },
+    toObject: {
+      virtuals: true,
+    },
 })
 
 
+
+userSchema.virtual(
+  "followersCount"
+).get(function () {
+  return this.followers.length;
+});
+
+userSchema.virtual(
+  "followingCount"
+).get(function () {
+  return this.following.length;
+});
 
 export const User = model<IUser>('User', userSchema)
 export default User

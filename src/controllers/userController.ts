@@ -220,7 +220,7 @@ export const updateBio = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
-export const userProfile = asyncHandler(async (req: Request, res: Response) => {
+export const myProfile = asyncHandler(async (req: Request, res: Response) => {
   const user = req.user;
   if (!user) {
     throw new AppError("User not found", 404);
@@ -417,3 +417,43 @@ export const followUser = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 });
+
+
+export const getUserProfile = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { userId } = req.params;
+
+    if (!mongoose.isValidObjectId(userId)) {
+      throw new AppError(
+        "Invalid user ID",
+        400
+      );
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new AppError(
+        "User not found",
+        404
+      );
+    }
+
+    const currentUserId = req.user?._id;
+
+    const isFollowing =
+      currentUserId
+        ? user.followers.some(
+            (id) =>
+              id.toString() ===
+              currentUserId.toString()
+          )
+        : false;
+
+    return res.status(200).json({
+      success: true,
+      user,
+      isFollowing,
+    });
+  }
+);

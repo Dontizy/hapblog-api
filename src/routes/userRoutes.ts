@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {register,login, deleteUser, allUsers, changePassword, addOrRemoveAdmin, followUser, updateBio, userProfile, avatarUpdate, forgotPassword, resetPassword} from '../controllers/userController.js'
+import {register,login, deleteUser, allUsers, changePassword, addOrRemoveAdmin, followUser, updateBio, getUserProfile, myProfile, avatarUpdate, forgotPassword, resetPassword} from '../controllers/userController.js'
 import { protect } from "../middleware/authMiddleware.js";
 import { isAdmin } from "../middleware/authorizedUser.js";
 import {upload} from "../utils/uploader.js"
@@ -208,7 +208,7 @@ router.put('/auth/password-update', protect, changePassword)
  *       404:
  *         description: User not found
  */
- router.get("/auth/profile", protect, userProfile)
+ router.get("/auth/profile", protect, myProfile)
  /**
  * @swagger
  * /user/auth/avatar:
@@ -474,4 +474,36 @@ router.patch("/auth/bio/update", protect, updateBio)
  *         description: Internal server error
  */
 router.patch("/auth/:userId/follow", protect, followUser)
+
+/**
+ * @swagger
+ * /user/auth/{userId}:
+ * get:
+ * summary: Get User Profile
+ * tags: [Users]
+ * security:
+ *  - bearerAuth: []
+ * parameters:
+ * - in: path
+ * name: userId
+ * required: true
+ * schema:
+ * type: string
+ * responses:
+ * 200:
+ * description: Profile retrieved successfully
+ * content:
+ * application/json:
+ * schema:
+ * type: object
+ * properties:
+ * success: { type: boolean, example: true }
+ * user: { type: object }
+ * isFollowing: { type: boolean, example: false }
+ * 400:
+ * description: Invalid user ID
+ * 404:
+ * description: User not found
+ */
+router.get("/auth/:userId", protect, getUserProfile)
 export default router
