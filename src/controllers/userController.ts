@@ -404,13 +404,12 @@ export const followUser = asyncHandler(async (req: Request, res: Response) => {
     userToFollow.followers?.push(currentUser._id);
     await currentUser.save();
     await userToFollow.save();
-
+    
     await createNotification({
       recipient: userToFollow._id,
       sender: currentUser._id,
       type: "follow",
     });
-    
     return res.status(200).json({
       isFollowing: true,
       success: true,

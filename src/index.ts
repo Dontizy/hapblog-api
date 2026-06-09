@@ -11,7 +11,7 @@ import commentRoute from "./routes/commentRoute.js"
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import mongoSanitize from "express-mongo-sanitize";
+
 
 
 const app = express();
@@ -24,14 +24,14 @@ app.use(
     })
 );
 app.use(express.urlencoded({extended:true}))
-app.use(express.json())
+app.use(express.json({ limit: "10mb" }));
 app.use(helmet())
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100 // limit each IP to 100 requests per windowMs
 });
 app.use(limiter)
-app.use(mongoSanitize());
+app.set("trust proxy", 1);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 app.use('/user', userRoute)
 app.use('/blog', blogRoute)
