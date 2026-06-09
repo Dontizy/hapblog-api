@@ -9,7 +9,7 @@ export interface INotification {
   recipient: Types.ObjectId;
   sender: Types.ObjectId;
 
-  type: "blog_like" | "comment" | "reply" | "reply_like" | "comment_like";
+  type: "blog_like" | "comment" | "reply" | "reply_like" | "comment_like" | "follow";
 
   blog: Types.ObjectId;
 
@@ -43,15 +43,15 @@ const notificationSchema =
         "comment", 
         "reply",
         "reply_like",
-        "comment_like"
+        "comment_like",
+        "follow"
         ],
         required: true,
       },
 
       blog: {
         type: Schema.Types.ObjectId,
-        ref: "Blog",
-        required: true,
+        ref: "Blog"
       },
 
       comment: {

@@ -6,9 +6,12 @@ export interface IUser {
     email:string;
     role:'user' | 'admin';
     avatar?:string;
+    bio?:string;
     avatarPublicId?:string;
     password:string;
     bookmarks: Types.ObjectId[];
+    followers: Types.ObjectId[];
+    following: Types.ObjectId[];
     resetPasswordToken?: string | undefined;
     resetPasswordExpire?: Date | undefined;
   
@@ -39,6 +42,28 @@ const userSchema = new Schema<IUser>({
       required:false,
       default:"https://res.cloudinary.com/dxdtdqxse/image/upload/v1778510804/ChatGPT_Image_May_11_2026_03_45_21_PM_zxd9oh.png"
     },
+    bio:{
+      type:String,
+      required:false,
+      trim:true,
+      maxlength:200,
+      default:"This user hasn't added a bio yet. Check out their latest posts to learn more."
+
+    },
+    followers:
+      {
+        type:[Schema.Types.ObjectId],
+        ref:"User",
+        default:[]
+      },
+
+    following:
+      {
+        type:[Schema.Types.ObjectId],
+        ref:"User",
+        default:[]
+      },
+
     avatarPublicId: {
       type: String,
     },

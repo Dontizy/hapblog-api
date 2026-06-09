@@ -9,8 +9,9 @@ interface CreateNotificationParams {
     | "comment"
     | "reply"
     | "reply_like"
-    | "comment_like";
-  blog: string;
+    | "comment_like"
+    | "follow";
+  blog?: string;
   comment?: string;
   reply?: string;
 }
@@ -34,11 +35,11 @@ export const createNotification = async ({
     blog,
   };
 
+  if (blog) query.blog = blog;
   if (comment) query.comment = comment;
   if (reply) query.reply = reply;
 
-  const existingNotification =
-    await Notification.findOne(query);
+  const existingNotification = await Notification.findOne(query);
 
   if (existingNotification) {
     return;

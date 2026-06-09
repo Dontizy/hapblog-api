@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {register,login, deleteUser, allUsers, changePassword, addOrRemoveAdmin, userProfile, avatarUpdate, forgotPassword, resetPassword} from '../controllers/userController.js'
+import {register,login, deleteUser, allUsers, changePassword, addOrRemoveAdmin, followUser, updateBio, userProfile, avatarUpdate, forgotPassword, resetPassword} from '../controllers/userController.js'
 import { protect } from "../middleware/authMiddleware.js";
 import { isAdmin } from "../middleware/authorizedUser.js";
 import {upload} from "../utils/uploader.js"
@@ -390,4 +390,88 @@ router.patch("/auth/notifications/:id/read", protect, markNotificationAsRead)
  */
 router.get("/auth/notifications/:id/open", protect, openNotification)
 
+/**
+ * @swagger
+ * /user/auth/bio/update:
+ *   patch:
+ *     summary: Update user bio
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - bio
+ *             properties:
+ *               bio:
+ *                 type: string
+ *                 maxLength: 200
+ *                 example: Full-stack developer passionate about web technologies.
+ *     responses:
+ *       200:
+ *         description: Bio updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 bio:
+ *                   type: string
+ *       400:
+ *         description: Invalid user ID or bio exceeds 200 characters
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
+router.patch("/auth/bio/update", protect, updateBio)
+
+/**
+ * @swagger
+ * /user/auth/{userId}/follow:
+ *   patch:
+ *     summary: Follow or unfollow a user
+ *     description: Toggles the follow status between the authenticated user and the target user.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user to follow or unfollow
+ *     responses:
+ *       200:
+ *         description: Follow status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: You are now following John Doe
+ *       400:
+ *         description: Invalid user ID or attempting to follow yourself
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
+router.patch("/auth/:userId/follow", protect, followUser)
 export default router
