@@ -39,7 +39,7 @@ app.use('/blog', commentRoute)
 app.use(errorHandler)
 
 app.get("/",(req, res)=>{
-    res.send("Welcome To Hapblog")
+   res.redirect("/api-docs");
 })
 
 const startServer = async()=>{
