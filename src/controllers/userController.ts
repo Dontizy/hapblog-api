@@ -232,6 +232,12 @@ export const myProfile = asyncHandler(async (req: Request, res: Response) => {
     avatar: user?.avatar,
     bio: user?.bio,
     role: user.role,
+    followers: user.followers,
+    following: user.following,
+    bookmarks: user.bookmarks,
+    bookmarksCount: user.bookmarksCount,
+    followersCount: user.followersCount,
+    followingCount: user.followingCount,
   };
   return res.status(200).json({ user: userData });
 });

@@ -74,12 +74,12 @@ const userSchema = new Schema<IUser>({
         minlength:5,
         select:false
     },
-    bookmarks: [
+    bookmarks: 
   {
-    type: Schema.Types.ObjectId,
+    type: [Schema.Types.ObjectId],
     ref: "Blog",
+    default:[]
   },
-],
     resetPasswordToken:{
       type:String,
       select:false
@@ -103,14 +103,17 @@ const userSchema = new Schema<IUser>({
 userSchema.virtual(
   "followersCount"
 ).get(function () {
-  return this.followers.length;
+  return this.followers?.length || 0;
 });
 
 userSchema.virtual(
   "followingCount"
 ).get(function () {
-  return this.following.length;
+  return this.following?.length || 0;
 });
 
+userSchema.virtual("bookmarksCount").get(function () {
+  return this.bookmarks?.length || 0;
+});
 export const User = model<IUser>('User', userSchema)
 export default User
