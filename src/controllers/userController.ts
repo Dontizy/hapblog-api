@@ -50,6 +50,8 @@ export const register = asyncHandler(
           name: user.name,
           email: user.email,
           role: user.role,
+          bio: user.bio,
+          avatar: user.avatar,
         },
         token,
       });
@@ -93,6 +95,8 @@ export const login = asyncHandler(
           name: user.name,
           email: user.email,
           role: user.role,
+          bio: user.bio,
+          avatar: user.avatar,
         },
         token,
       });
@@ -225,6 +229,7 @@ export const myProfile = asyncHandler(async (req: Request, res: Response) => {
   if (!user) {
     throw new AppError("User not found", 404);
   }
+  const blog = await Blog.countDocuments({ author: user._id })
   const userData = {
   id: user._id,
   name: user.name,
@@ -235,7 +240,7 @@ export const myProfile = asyncHandler(async (req: Request, res: Response) => {
   followers: user.followers,
   following: user.following,
   bookmarks: user.bookmarks,
-
+  blogsCount: blog,
   bookmarksCount: user.bookmarks?.length || 0,
   followersCount: user.followers?.length || 0,
   followingCount: user.following?.length || 0,
@@ -457,11 +462,22 @@ export const getUserProfile = asyncHandler(
               currentUserId.toString()
           )
         : false;
+    
+    const blog = await Blog.countDocuments({ author: user._id })
+
+    const userData = {
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      followersCount: user.followers?.length || 0,
+      followingCount: user.following?.length || 0,
+    }
 
     return res.status(200).json({
       success: true,
-      user,
+      user:userData,
       isFollowing,
+      blogsCount: blog
     });
   }
 );

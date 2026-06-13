@@ -7,172 +7,190 @@ import { CreateBlogDTO } from "../dto/BlogData.dto.js";
 import mongoose from "mongoose";
 import uploadToCloudinary from "../utils/uploadToCloudinary.js";
 import { UploadApiResponse } from "cloudinary";
-import Comment from "../models/Comment.js"
-import Reply from "../models/Reply.js"
-import {createNotification} from "../utils/createNotification.js"
-import Notification from "../models/Notification.js"
+import Comment from "../models/Comment.js";
+import Reply from "../models/Reply.js";
+import { createNotification } from "../utils/createNotification.js";
+import Notification from "../models/Notification.js";
 
-export const createBlogPost = asyncHandler(async (req: Request<{}, {}, blogCreateType>, res: Response) => {
-
-    const { title, content } = req.body
+export const createBlogPost = asyncHandler(
+  async (req: Request<{}, {}, blogCreateType>, res: Response) => {
+    const { title, content } = req.body;
 
     if (!title || !content) {
-        throw new AppError("Title and Content can't be empty!", 400)
+      throw new AppError("Title and Content can't be empty!", 400);
     }
-    const user = req.user
-    if(!user){
-      throw new AppError("Not authorized", 401)
+    const user = req.user;
+    if (!user) {
+      throw new AppError("Not authorized", 401);
     }
     const userId = user._id;
-    
-    const blogData: CreateBlogDTO = { title, content, author: userId }
+
+    const blogData: CreateBlogDTO = { title, content, author: userId };
 
     if (req.file) {
-        const upload = await uploadToCloudinary(req.file) as UploadApiResponse;
-        blogData.imageUrl = upload.secure_url;
+      const upload = (await uploadToCloudinary(req.file)) as UploadApiResponse;
+      blogData.imageUrl = upload.secure_url;
     }
-    const blog = await Blog.create(blogData)
+    const blog = await Blog.create(blogData);
     res.status(201).json({
-        success: true,
-        blog
-    })
-})
+      success: true,
+      blog,
+    });
+  },
+);
 
-export const getAllBlogPost = asyncHandler(async (req: Request, res: Response) => {
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 10;
-  const skip = (page - 1) * limit;
-  
-    const [blogs, totalBlogs] = await Promise.all([Blog.find().sort({ createdAt: -1 }).skip(skip).limit(limit).populate("author", "name email").populate("commentsCount"),
-    Blog.countDocuments()
-    ])
-    
+export const getAllBlogPost = asyncHandler(
+  async (req: Request, res: Response) => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const [blogs, totalBlogs] = await Promise.all([
+      Blog.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("author", "name email avatar")
+        .populate("commentsCount"),
+      Blog.countDocuments(),
+    ]);
+
     res.status(200).json({
-      success:true,
+      success: true,
       blogs,
       currentPage: page,
       totalPages: Math.ceil(totalBlogs / limit),
-      totalBlogs
-      
-    })
-})
+      totalBlogs,
+    });
+  },
+);
 
 export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params as { id: string }
-    if (!mongoose.isValidObjectId(id)) {
-        throw new AppError("Invalid blog id", 400)
-    }
+  const { id } = req.params as { id: string };
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid blog id", 400);
+  }
 
-    const [blog, commentCount] = await Promise.all([ Blog.findById(id).populate("author", "name email"),
-     Comment.countDocuments({blog:id})
-    ])
-    
-    if (!blog) {
-        throw new AppError("Post does not exist", 404)
-    }
-    
-    return res.status(200).json({
-      success:true,
+  const [blog, commentCount] = await Promise.all([
+    Blog.findById(id).populate("author", "name email"),
+    Comment.countDocuments({ blog: id }),
+  ]);
+
+  if (!blog) {
+    throw new AppError("Post does not exist", 404);
+  }
+
+  return res.status(200).json({
+    success: true,
     blog,
-      commentCount
-    })
+    commentCount,
+  });
+});
 
-})
-
-export const updateBlogPost = asyncHandler(async (req: Request<{}, {}, updateBlogType>, res: Response) => {
-    const { id } = req.params as { id: string }
-    const { title, content } = req.body
+export const updateBlogPost = asyncHandler(
+  async (req: Request<{}, {}, updateBlogType>, res: Response) => {
+    const { id } = req.params as { id: string };
+    const { title, content } = req.body;
     if (!mongoose.isValidObjectId(id)) {
-        throw new AppError("Invalid blog id", 400)
+      throw new AppError("Invalid blog id", 400);
     }
-    const blog = await Blog.findById(id)
+    const blog = await Blog.findById(id);
 
     if (!blog) {
-        throw new AppError('Post not found', 404)
+      throw new AppError("Post not found", 404);
     }
 
     if (typeof title === "string") {
-        blog.title = title
+      blog.title = title;
     }
     if (typeof content === "string") {
-        blog.content = content
+      blog.content = content;
     }
     if (req.file) {
-        const upload = await uploadToCloudinary(req.file) as UploadApiResponse;
-        blog.imageUrl = upload.secure_url;
+      const upload = (await uploadToCloudinary(req.file)) as UploadApiResponse;
+      blog.imageUrl = upload.secure_url;
     }
-    await blog.save()
+    await blog.save();
     return res.status(200).json({
-        success: true,
-        blog
-    })
-})
-
-export const deleteBlogPost = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params as { id: string }
-    if (!mongoose.isValidObjectId(id)) {
-        throw new AppError("Invalid blog id", 400)
-    }
-    const blog = await Blog.findById(id)
-    
-    if (!blog) {
-        throw new AppError("Post not found", 404)
-    }
-    const comments = await Comment.find({blog:blog._id}).select("_id").lean()
-    const commentIds = comments.map((comment)=>comment._id)
-    if(commentIds.length > 0){
-      await Reply.deleteMany({
-        comment:{ $in: commentIds}
-      })
-    }
-    await Comment.deleteMany({blog:blog._id})
-    await Blog.findByIdAndDelete(id)
-    return res.status(200).json({ success: true, message:"Blog post deleted successfully" })
-})
-
-
-export const toggleLikePost =asyncHandler(async(req:Request, res:Response)=>{
-  const {id} = req.params as{
-    id:string,
-  }
-  const user = req.user
-  if(!user){
-    throw new AppError("Not authorized ", 401)
-  }
-  const userId =user._id
-  if(!mongoose.isValidObjectId(id)){
-    throw new AppError("Invalid blog post ID", 400)
-  }
-  const blog = await Blog.findById(id)
-  if(!blog){
-    throw new AppError("Blog post not found", 404)
-  }
-  const alreadyLiked = blog.likes.some((like)=> like.toString() === userId.toString())
-  
-  
-  const hasLiked = blog.likes.some(
-  (like) => like.toString() === userId.toString()
+      success: true,
+      blog,
+    });
+  },
 );
 
-await Blog.findByIdAndUpdate(id, {
-  [hasLiked ? "$pull" : "$addToSet"]: {
-    likes: userId,
+export const deleteBlogPost = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    if (!mongoose.isValidObjectId(id)) {
+      throw new AppError("Invalid blog id", 400);
+    }
+    const blog = await Blog.findById(id);
+
+    if (!blog) {
+      throw new AppError("Post not found", 404);
+    }
+    const comments = await Comment.find({ blog: blog._id })
+      .select("_id")
+      .lean();
+    const commentIds = comments.map((comment) => comment._id);
+    if (commentIds.length > 0) {
+      await Reply.deleteMany({
+        comment: { $in: commentIds },
+      });
+    }
+    await Comment.deleteMany({ blog: blog._id });
+    await Blog.findByIdAndDelete(id);
+    return res
+      .status(200)
+      .json({ success: true, message: "Blog post deleted successfully" });
   },
-});
+);
 
-if (!hasLiked) {
-  await createNotification({
-    recipient: blog.author.toString(),
-    sender: userId.toString(),
-    type: "blog_like",
-    blog: blog._id.toString(),
-  });
-}
+export const toggleLikePost = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params as {
+      id: string;
+    };
+    const user = req.user;
+    if (!user) {
+      throw new AppError("Not authorized ", 401);
+    }
+    const userId = user._id;
+    if (!mongoose.isValidObjectId(id)) {
+      throw new AppError("Invalid blog post ID", 400);
+    }
+    const blog = await Blog.findById(id);
+    if (!blog) {
+      throw new AppError("Blog post not found", 404);
+    }
+    const alreadyLiked = blog.likes.some(
+      (like) => like.toString() === userId.toString(),
+    );
 
- return res.status(200).json({
-  success: true,
-  message: hasLiked
-    ? "Post unliked successfully"
-    : "Post liked successfully",
-});
-})
+    const hasLiked = blog.likes.some(
+      (like) => like.toString() === userId.toString(),
+    );
+
+    await Blog.findByIdAndUpdate(id, {
+      [hasLiked ? "$pull" : "$addToSet"]: {
+        likes: userId,
+      },
+    });
+
+    if (!hasLiked) {
+      await createNotification({
+        recipient: blog.author.toString(),
+        sender: userId.toString(),
+        type: "blog_like",
+        blog: blog._id.toString(),
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: hasLiked
+        ? "Post unliked successfully"
+        : "Post liked successfully",
+    });
+  },
+);

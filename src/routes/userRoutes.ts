@@ -1,10 +1,27 @@
 import { Router } from "express";
-import {register,login, deleteUser, allUsers, changePassword, addOrRemoveAdmin, followUser, updateBio, getUserProfile, myProfile, avatarUpdate, forgotPassword, resetPassword} from '../controllers/userController.js'
+import {
+  register,
+  login,
+  deleteUser,
+  allUsers,
+  changePassword,
+  addOrRemoveAdmin,
+  followUser,
+  updateBio,
+  getUserProfile,
+  myProfile,
+  avatarUpdate,
+  forgotPassword,
+  resetPassword,
+} from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { isAdmin } from "../middleware/authorizedUser.js";
-import {upload} from "../utils/uploader.js"
-import {getNotifications, markNotificationAsRead, openNotification} from "../controllers/notificationController.js"
-
+import { upload } from "../utils/uploader.js";
+import {
+  getNotifications,
+  markNotificationAsRead,
+  openNotification,
+} from "../controllers/notificationController.js";
 
 const router = Router();
 
@@ -43,8 +60,7 @@ const router = Router();
  *       500:
  *         description: Server error
  */
-router.post('/register', register);
-
+router.post("/register", register);
 
 /**
  * @openapi
@@ -76,7 +92,7 @@ router.post('/register', register);
  *       500:
  *         description: Server error
  */
-router.post('/login', login)
+router.post("/login", login);
 
 /**
  * @openapi
@@ -108,7 +124,7 @@ router.post('/login', login)
  *         description: User not found
  */
 
-router.delete('/auth/delete/:id', protect, isAdmin, deleteUser)
+router.delete("/auth/delete/:id", protect, isAdmin, deleteUser);
 
 /**
  * @openapi
@@ -128,7 +144,7 @@ router.delete('/auth/delete/:id', protect, isAdmin, deleteUser)
  *       403:
  *         description: Only admin allowed
  */
-router.get('/auth/users', protect, isAdmin, allUsers)
+router.get("/auth/users", protect, isAdmin, allUsers);
 
 /**
  * @openapi
@@ -166,7 +182,7 @@ router.get('/auth/users', protect, isAdmin, allUsers)
  *       404:
  *         description: User not found
  */
-router.put('/auth/password-update', protect, changePassword)
+router.put("/auth/password-update", protect, changePassword);
 
 /**
  * @swagger
@@ -192,8 +208,8 @@ router.put('/auth/password-update', protect, changePassword)
  *       404:
  *         description: User not found
  */
- router.patch("/auth/admin/:id", protect, isAdmin, addOrRemoveAdmin)
- /**
+router.patch("/auth/admin/:id", protect, isAdmin, addOrRemoveAdmin);
+/**
  * @swagger
  * /user/auth/profile:
  *   get:
@@ -208,8 +224,9 @@ router.put('/auth/password-update', protect, changePassword)
  *       404:
  *         description: User not found
  */
- router.get("/auth/profile", protect, myProfile)
- /**
+router.get("/auth/profile", protect, myProfile);
+
+/**
  * @swagger
  * /user/auth/avatar:
  *   patch:
@@ -238,9 +255,9 @@ router.put('/auth/password-update', protect, changePassword)
  *       404:
  *         description: User not found
  */
- router.patch("/auth/avatar", protect, upload.single("avatar"), avatarUpdate)
- 
- /**
+router.patch("/auth/avatar", protect, upload.single("avatar"), avatarUpdate);
+
+/**
  * @swagger
  * /user/auth/forgot-password:
  *   post:
@@ -265,9 +282,9 @@ router.put('/auth/password-update', protect, changePassword)
  *       404:
  *         description: User not found
  */
- router.post("/auth/forgot-password", forgotPassword)
- 
- /**
+router.post("/auth/forgot-password", forgotPassword);
+
+/**
  * @swagger
  * /user/auth/reset-password/{token}:
  *   post:
@@ -298,8 +315,8 @@ router.put('/auth/password-update', protect, changePassword)
  *       400:
  *         description: Invalid or expired token
  */
- router.post("/auth/reset-password/:token", resetPassword)
- 
+router.post("/auth/reset-password/:token", resetPassword);
+
 /**
  * @swagger
  * /user/auth/notifications:
@@ -327,7 +344,7 @@ router.put('/auth/password-update', protect, changePassword)
  *       500:
  *         description: Internal server error
  */
-router.get("/auth/notifications", protect, getNotifications)
+router.get("/auth/notifications", protect, getNotifications);
 
 /**
  * @swagger
@@ -353,7 +370,7 @@ router.get("/auth/notifications", protect, getNotifications)
  *       500:
  *         description: Internal server error
  */
-router.patch("/auth/notifications/:id/read", protect, markNotificationAsRead)
+router.patch("/auth/notifications/:id/read", protect, markNotificationAsRead);
 
 /**
  * @swagger
@@ -388,7 +405,7 @@ router.patch("/auth/notifications/:id/read", protect, markNotificationAsRead)
  *       500:
  *         description: Internal server error
  */
-router.get("/auth/notifications/:id/open", protect, openNotification)
+router.get("/auth/notifications/:id/open", protect, openNotification);
 
 /**
  * @swagger
@@ -432,7 +449,7 @@ router.get("/auth/notifications/:id/open", protect, openNotification)
  *       500:
  *         description: Internal server error
  */
-router.patch("/auth/bio/update", protect, updateBio)
+router.patch("/auth/bio/update", protect, updateBio);
 
 /**
  * @swagger
@@ -473,37 +490,22 @@ router.patch("/auth/bio/update", protect, updateBio)
  *       500:
  *         description: Internal server error
  */
-router.patch("/auth/:userId/follow", protect, followUser)
+router.patch("/auth/:userId/follow", protect, followUser);
 
 /**
  * @swagger
  * /user/auth/{userId}:
- * get:
- * summary: Get User Profile
- * tags: [Users]
- * security:
- *  - bearerAuth: []
- * parameters:
- * - in: path
- * name: userId
- * required: true
- * schema:
- * type: string
- * responses:
- * 200:
- * description: Profile retrieved successfully
- * content:
- * application/json:
- * schema:
- * type: object
- * properties:
- * success: { type: boolean, example: true }
- * user: { type: object }
- * isFollowing: { type: boolean, example: false }
- * 400:
- * description: Invalid user ID
- * 404:
- * description: User not found
+ *   get:
+ *     summary: Get a user profile
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile fetched successfully
+ *       404:
+ *         description: User not found
  */
-router.get("/auth/:userId", protect, getUserProfile)
-export default router
+router.get("/auth/:userId", protect, getUserProfile);
+export default router;
