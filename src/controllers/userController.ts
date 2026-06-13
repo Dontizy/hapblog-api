@@ -226,19 +226,21 @@ export const myProfile = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError("User not found", 404);
   }
   const userData = {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    avatar: user?.avatar,
-    bio: user?.bio,
-    role: user.role,
-    followers: user.followers,
-    following: user.following,
-    bookmarks: user.bookmarks,
-    bookmarksCount: user.bookmarksCount,
-    followersCount: user.followersCount,
-    followingCount: user.followingCount,
-  };
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  avatar: user?.avatar,
+  bio: user?.bio,
+  role: user.role,
+  followers: user.followers,
+  following: user.following,
+  bookmarks: user.bookmarks,
+
+  bookmarksCount: user.bookmarks?.length || 0,
+  followersCount: user.followers?.length || 0,
+  followingCount: user.following?.length || 0,
+};
+
   return res.status(200).json({ user: userData });
 });
 
