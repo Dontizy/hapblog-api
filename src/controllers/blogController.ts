@@ -50,7 +50,7 @@ export const getAllBlogPost = asyncHandler(
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("author", "name email avatar")
+        .populate("author", "name avatar")
         .populate("commentsCount"),
       Blog.countDocuments(),
     ]);
@@ -72,7 +72,7 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const [blog, commentCount] = await Promise.all([
-    Blog.findById(id).populate("author", "name email"),
+    Blog.findById(id).populate("author", "name avatar"),
     Comment.countDocuments({ blog: id }),
   ]);
 
