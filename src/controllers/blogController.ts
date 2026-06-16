@@ -71,7 +71,7 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError("Invalid blog id", 400);
   }
 
-  const [blog, commentCount] = await Promise.all([
+  const [blog, commentsCount] = await Promise.all([
     Blog.findById(id).populate("author", "name avatar"),
     Comment.countDocuments({ blog: id }),
   ]);
@@ -86,7 +86,7 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
     success: true,
     blog:{
       ...blogData,
-      commentCount
+      commentsCount
     }
   });
 });
