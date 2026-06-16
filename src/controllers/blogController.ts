@@ -79,11 +79,15 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
   if (!blog) {
     throw new AppError("Post does not exist", 404);
   }
-
+  
+  const blogData = blog.toObject()
+  
   return res.status(200).json({
     success: true,
-    blog,
-    commentCount,
+    blog:{
+      ...blogData,
+      commentCount
+    }
   });
 });
 
