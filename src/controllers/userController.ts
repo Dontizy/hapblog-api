@@ -104,7 +104,27 @@ export const login = asyncHandler(
 );
 
 export const allUsers = asyncHandler(async (req: Request, res: Response) => {
-  const users = await User.find().sort({ createdAt: -1 });
+   const search = String(req.query.search || "").trim();
+
+    const query: Record<string, unknown> = {};
+
+    if (search) {
+      query.$or = [
+        {
+          name: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          email: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+      ];
+    }
+  const users = await User.find(query).sort({ createdAt: -1 });
   return res.status(200).json({
     success: true,
     users,
@@ -417,7 +437,7 @@ export const followUser = asyncHandler(async (req: Request, res: Response) => {
     userToFollow.followers?.push(currentUser._id);
     await currentUser.save();
     await userToFollow.save();
-    
+
     await createNotification({
       recipient: userToFollow._id,
       sender: currentUser._id,
@@ -462,7 +482,7 @@ export const getUserProfile = asyncHandler(
               currentUserId.toString()
           )
         : false;
-    
+
     const blog = await Blog.countDocuments({ author: user._id })
 
     const userData = {

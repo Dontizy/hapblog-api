@@ -1,6 +1,5 @@
 import { HydratedDocument, Schema, Types, model } from "mongoose";
-import { Comment } from "./Comment.js";
-import type { CallbackWithoutResultAndOptionalError } from "mongoose";
+
 
 export interface IBlog {
   title: string;

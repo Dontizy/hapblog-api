@@ -11,6 +11,7 @@ import Comment from "../models/Comment.js";
 import Reply from "../models/Reply.js";
 import { createNotification } from "../utils/createNotification.js";
 import Notification from "../models/Notification.js";
+import type { IBlog } from "../models/Blog.js";
 
 export const createBlogPost = asyncHandler(
   async (req: Request<{}, {}, blogCreateType>, res: Response) => {
@@ -41,17 +42,36 @@ export const createBlogPost = asyncHandler(
 
 export const getAllBlogPost = asyncHandler(
   async (req: Request, res: Response) => {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.max(1, Number(req.query.limit) || 10);
     const skip = (page - 1) * limit;
+    const search = String(req.query.search || "").trim();
+
+    const query: Record<string, unknown> = {};
+
+    if (search) {
+      query.$or = [
+        {
+          title: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          content: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+      ];
+    }
 
     const [blogs, totalBlogs] = await Promise.all([
-      Blog.find()
+      Blog.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("author", "name avatar")
-        .populate("commentsCount"),
+        .populate("author", "name avatar"),
       Blog.countDocuments(),
     ]);
 
@@ -61,6 +81,7 @@ export const getAllBlogPost = asyncHandler(
       currentPage: page,
       totalPages: Math.ceil(totalBlogs / limit),
       totalBlogs,
+      limit,
     });
   },
 );
@@ -79,15 +100,15 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
   if (!blog) {
     throw new AppError("Post does not exist", 404);
   }
-  
-  const blogData = blog.toObject()
-  
+
+  const blogData = blog.toObject();
+
   return res.status(200).json({
     success: true,
-    blog:{
+    blog: {
       ...blogData,
-      commentsCount
-    }
+      commentsCount,
+    },
   });
 });
 
