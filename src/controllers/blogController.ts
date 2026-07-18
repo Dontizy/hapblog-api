@@ -71,9 +71,9 @@ export const getAllBlogPost = asyncHandler(
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("author", "name avatar"),
+        .populate("author", "name avatar").populate("commentsCount"),
       Blog.countDocuments(),
-    ]);
+    ])
 
     res.status(200).json({
       success: true,
