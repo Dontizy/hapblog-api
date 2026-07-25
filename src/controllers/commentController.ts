@@ -14,11 +14,11 @@ export const createComment=asyncHandler(async(req:Request<{}, {}, createCommentT
   const {body} = req.body
   const {id} = req.params as {id:string}
   const user = req.user
-  
+
   if(!body?.trim()){
     throw new AppError("Comment body can't be empty", 400)
   }
-  
+
   if(!mongoose.isValidObjectId(id)){
     throw new AppError("Invalid blog ID", 400)
   }
@@ -26,7 +26,7 @@ export const createComment=asyncHandler(async(req:Request<{}, {}, createCommentT
   throw new AppError("Unauthorized", 401)
 }
 const userId = user._id
-  
+
   const blog = await Blog.findById(id)
   if(!blog){
     throw new AppError("Blog post not found", 404)
@@ -37,7 +37,7 @@ const userId = user._id
     blog:blog._id,
     body:body.trim()
   })
-  
+
   await createNotification({
   recipient: blog.author.toString(),
   sender: userId,
@@ -57,7 +57,7 @@ export const fetchComments=asyncHandler(async(req:Request, res:Response)=>{
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.max(1, Number(req.query.limit) || 10);
   const skip = (page - 1) * limit;
-  
+
   if(!mongoose.isValidObjectId(id)){
     throw new AppError("Invalid blog post ID", 400)
   }
@@ -78,9 +78,9 @@ export const fetchComments=asyncHandler(async(req:Request, res:Response)=>{
     }),
 
   Comment.countDocuments({ blog: id }),
-  
+
 ]);
-  
+
   return res.status(200).json({
     success:true,
     totalComments,
@@ -103,7 +103,7 @@ export const updateComment = asyncHandler(async(req:Request, res:Response)=>{
     throw new AppError("Comment body can't be empty", 400)
   }
   const blog = await Blog.findById(id)
-  
+
   if(!blog){
     throw new AppError("Blog post not found", 404)
   }
@@ -122,7 +122,7 @@ export const updateComment = asyncHandler(async(req:Request, res:Response)=>{
 
 export const deleteComment = asyncHandler(async(req:Request, res:Response)=>{
   const {commentId, id} = req.params as { commentId:string, id:string}
-  
+
   if(!mongoose.isValidObjectId(commentId)){
     throw new AppError("Invalid comment ID", 400)
   }
@@ -165,7 +165,7 @@ export const toggleLikeComment =asyncHandler(async(req:Request, res:Response)=>{
   if(!comment){
     throw new AppError("Blog post comment not found", 404)
   }
-  
+
   const hasLiked = comment.likes.some(
   (like) => like.toString() === userId.toString()
 );

@@ -15,7 +15,6 @@ import crypto from "crypto";
 import { resend } from "../config/resend.js";
 import { createNotification } from "../utils/createNotification.js";
 
-
 const hashPassword = async (plainPassword: string) => {
   const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(plainPassword, salt);
@@ -42,19 +41,17 @@ export const register = asyncHandler(
     const token = jwt.sign({ id: String(user._id) }, secret, {
       expiresIn: "1d",
     });
-    return res
-      .status(201)
-      .json({
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          bio: user.bio,
-          avatar: user.avatar,
-        },
-        token,
-      });
+    return res.status(201).json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        bio: user.bio,
+        avatar: user.avatar,
+      },
+      token,
+    });
   },
 );
 
@@ -87,43 +84,41 @@ export const login = asyncHandler(
     const token = jwt.sign({ id: String(user._id) }, secret, {
       expiresIn: "1d",
     });
-    return res
-      .status(200)
-      .json({
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          bio: user.bio,
-          avatar: user.avatar,
-        },
-        token,
-      });
+    return res.status(200).json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        bio: user.bio,
+        avatar: user.avatar,
+      },
+      token,
+    });
   },
 );
 
 export const allUsers = asyncHandler(async (req: Request, res: Response) => {
-   const search = String(req.query.search || "").trim();
+  const search = String(req.query.search || "").trim();
 
-    const query: Record<string, unknown> = {};
+  const query: Record<string, unknown> = {};
 
-    if (search) {
-      query.$or = [
-        {
-          name: {
-            $regex: search,
-            $options: "i",
-          },
+  if (search) {
+    query.$or = [
+      {
+        name: {
+          $regex: search,
+          $options: "i",
         },
-        {
-          email: {
-            $regex: search,
-            $options: "i",
-          },
+      },
+      {
+        email: {
+          $regex: search,
+          $options: "i",
         },
-      ];
-    }
+      },
+    ];
+  }
   const users = await User.find(query).sort({ createdAt: -1 });
   return res.status(200).json({
     success: true,
@@ -249,24 +244,24 @@ export const myProfile = asyncHandler(async (req: Request, res: Response) => {
   if (!user) {
     throw new AppError("User not found", 404);
   }
-  const blog = await Blog.countDocuments({ author: user._id })
+  const blog = await Blog.countDocuments({ author: user._id });
   const userData = {
-  id: user._id,
-  name: user.name,
-  email: user.email,
-  avatar: user?.avatar,
-  bio: user?.bio,
-  role: user.role,
-  followers: user.followers,
-  following: user.following,
-  bookmarks: user.bookmarks,
-  blogsCount: blog,
-  bookmarksCount: user.bookmarks?.length || 0,
-  followersCount: user.followers?.length || 0,
-  followingCount: user.following?.length || 0,
-};
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    avatar: user?.avatar,
+    bio: user?.bio,
+    role: user.role,
+    followers: user.followers,
+    following: user.following,
+    bookmarks: user.bookmarks,
+    blogsCount: blog,
+    bookmarksCount: user.bookmarks?.length || 0,
+    followersCount: user.followers?.length || 0,
+    followingCount: user.following?.length || 0,
+  };
 
-  return res.status(200).json({ user: userData });
+  return res.status(200).json({ success: true, user: userData });
 });
 
 export const avatarUpdate = asyncHandler(
@@ -451,39 +446,27 @@ export const followUser = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
-
 export const getUserProfile = asyncHandler(
   async (req: Request, res: Response) => {
     const { userId } = req.params;
 
     if (!mongoose.isValidObjectId(userId)) {
-      throw new AppError(
-        "Invalid user ID",
-        400
-      );
+      throw new AppError("Invalid user ID", 400);
     }
 
     const user = await User.findById(userId);
 
     if (!user) {
-      throw new AppError(
-        "User not found",
-        404
-      );
+      throw new AppError("User not found", 404);
     }
 
     const currentUserId = req.user?._id;
 
-    const isFollowing =
-      currentUserId
-        ? user.followers.some(
-            (id) =>
-              id.toString() ===
-              currentUserId.toString()
-          )
-        : false;
+    const isFollowing = currentUserId
+      ? user.followers.some((id) => id.toString() === currentUserId.toString())
+      : false;
 
-    const blog = await Blog.countDocuments({ author: user._id })
+    const blog = await Blog.countDocuments({ author: user._id });
 
     const userData = {
       name: user.name,
@@ -491,13 +474,13 @@ export const getUserProfile = asyncHandler(
       avatar: user.avatar,
       followersCount: user.followers?.length || 0,
       followingCount: user.following?.length || 0,
-    }
+    };
 
     return res.status(200).json({
       success: true,
-      user:userData,
+      user: userData,
       isFollowing,
-      blogsCount: blog
+      blogsCount: blog,
     });
-  }
+  },
 );
