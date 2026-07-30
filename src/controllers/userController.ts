@@ -472,6 +472,7 @@ export const getUserProfile = asyncHandler(
       name: user.name,
       email: user.email,
       avatar: user.avatar,
+      bio: user.bio,
       followersCount: user.followers?.length || 0,
       followingCount: user.following?.length || 0,
     };
