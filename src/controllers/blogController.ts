@@ -71,13 +71,23 @@ export const getAllBlogPost = asyncHandler(
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("author", "name avatar").populate("commentsCount"),
+        .populate("author", "name avatar")
+        .populate("commentsCount"),
       Blog.countDocuments(),
-    ])
+    ]);
+    const userId = req.user?._id;
 
+    const blogsWithLikeStatus = blogs.map((blog) => {
+      const blogObject = blog.toObject();
+
+      return {
+        ...blogObject,
+        isLiked: !!userId && blog.likes.some((like) => like.equals(userId)),
+      };
+    });
     res.status(200).json({
       success: true,
-      blogs,
+      blogs:blogsWithLikeStatus,
       currentPage: page,
       totalPages: Math.ceil(totalBlogs / limit),
       totalBlogs,
@@ -100,7 +110,9 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
   if (!blog) {
     throw new AppError("Post does not exist", 404);
   }
+  const userId = req.user?._id;
 
+  const isLiked = !!userId && blog.likes.some((like) => like.equals(userId));
   const blogData = blog.toObject();
 
   return res.status(200).json({
@@ -108,6 +120,7 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
     blog: {
       ...blogData,
       commentsCount,
+      isLiked,
     },
   });
 });
