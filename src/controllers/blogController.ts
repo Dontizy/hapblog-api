@@ -114,7 +114,7 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
 
   const isLiked = !!userId && blog.likes.some((like) => like.equals(userId));
   const blogData = blog.toObject();
-
+ console.log("isLiked",isLiked)
   return res.status(200).json({
     success: true,
     blog: {

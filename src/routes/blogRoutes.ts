@@ -4,6 +4,7 @@ import {toggleBookmark, getBookmarks} from "../controllers/bookmarkController.js
 import { protect } from "../middleware/authMiddleware.js";
 import { upload } from "../utils/uploader.js";
 import { isAuthorized } from "../middleware/authorizedUser.js";
+import { optionalUser } from "../middleware/optionalUser.js";
 
 const router = Router()
 /**
@@ -60,7 +61,7 @@ router.post('/post', protect, upload.single('image'), createBlogPost)
  *         description: Internal server error
  */
 
-router.get('/posts', getAllBlogPost)
+router.get('/posts', optionalUser, getAllBlogPost)
 
 /**
  * @openapi
@@ -82,9 +83,9 @@ router.get('/posts', getAllBlogPost)
  *         description: Ok
  *       404:
  *         description: Blog post not found
- *     
+ *
  */
-router.get('/post/:id', getBlogPost)
+router.get('/post/:id', optionalUser, getBlogPost)
 
 /**
  * @openapi
@@ -157,7 +158,7 @@ router.put('/post/:id', protect, isAuthorized, upload.single("image"), updateBlo
  *         description: Unauthorized
  *       403:
  *         description: Action denied, only author and admin allowed
- * 
+ *
  */
 router.delete('/post/:id', protect, isAuthorized, deleteBlogPost)
 
@@ -190,9 +191,9 @@ router.delete('/post/:id', protect, isAuthorized, deleteBlogPost)
  *       404:
  *         description: Blog post not found
  */
- 
+
  router.patch("/post/:id/like", protect, toggleLikePost)
- 
+
   /**
  * @swagger
  * /blog/{id}/bookmark:
