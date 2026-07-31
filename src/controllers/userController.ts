@@ -448,7 +448,7 @@ export const followUser = asyncHandler(async (req: Request, res: Response) => {
 
 export const getUserProfile = asyncHandler(
   async (req: Request, res: Response) => {
-    const { userId } = req.params;
+    const { userId } = req.params as { userId: string };
 
     if (!mongoose.isValidObjectId(userId)) {
       throw new AppError("Invalid user ID", 400);
