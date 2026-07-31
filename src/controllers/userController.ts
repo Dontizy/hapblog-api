@@ -454,34 +454,38 @@ export const getUserProfile = asyncHandler(
       throw new AppError("Invalid user ID", 400);
     }
 
-    const user = await User.findById(userId);
+    const [user, blogsCount] = await Promise.all([
+      User.findById(userId)
+        .select("name email avatar bio followers following")
+        .lean(),
+      Blog.countDocuments({ author: userId }),
+    ]);
 
     if (!user) {
       throw new AppError("User not found", 404);
     }
 
-    const currentUserId = req.user?._id;
+    const currentUserId = req.user?._id?.toString();
 
     const isFollowing = currentUserId
-      ? user.followers.some((id) => id.toString() === currentUserId.toString())
+      ? user.followers.some(
+          (id) => id.toString() === currentUserId
+        )
       : false;
-
-    const blog = await Blog.countDocuments({ author: user._id });
-
-    const userData = {
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-      bio: user.bio,
-      followersCount: user.followers?.length || 0,
-      followingCount: user.following?.length || 0,
-    };
 
     return res.status(200).json({
       success: true,
-      user: userData,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        bio: user.bio,
+        followersCount: user.followers.length,
+        followingCount: user.following.length,
+      },
+      blogsCount,
       isFollowing,
-      blogsCount: blog,
     });
   },
 );

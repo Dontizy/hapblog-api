@@ -3,6 +3,8 @@ import {protect} from "../middleware/authMiddleware.js"
 import {createComment, fetchComments, updateComment, deleteComment, toggleLikeComment} from "../controllers/commentController.js";
 import {isCommentAuthorOrAdmin, isCommentAuthor, isReplyAuthorOrAdmin, isReplyAuthor} from "../middleware/authorizedUser.js"
 import { createReply, updateReply,toggleReplyLike, deleteReply, fetchReplies } from "../controllers/replyController.js"
+import { optionalUser } from "../middleware/optionalUser.js";
+optionalUser
 
 const router = Router()
 
@@ -27,8 +29,8 @@ const router = Router()
  *       404:
  *         description: Blog not found
  */
-router.get("/post/:id/comments", fetchComments)
- 
+router.get("/post/:id/comments", optionalUser, fetchComments)
+
  /**
  * @swagger
  * /blog/post/{id}/comment/:
@@ -96,7 +98,7 @@ router.post("/post/:id/comment", protect, createComment)
  *       400:
  *         description: Invalid input
  *       403:
- *         description: Permission denied, not author 
+ *         description: Permission denied, not author
  *       404:
  *         description: Comment or blog not found
  */
@@ -133,14 +135,14 @@ router.patch("/:id/comment/:commentId", protect, isCommentAuthor, updateComment)
  *
  *       404:
  *         description: Blog post or comment not found
- * 
+ *
  *       403:
  *         description: Permission denied, not author or admin
  *
  *       401:
  *         description: Unauthorized
  */
- 
+
  router.delete("/blog/:id/comment/:commentId", protect, isCommentAuthorOrAdmin, deleteComment)
 /**
  * @swagger
@@ -210,7 +212,7 @@ router.patch("/:id/comment/:commentId/like", protect, toggleLikeComment)
  *       404:
  *         description: Comment not found
  */
- 
+
 router.post("/comment/:commentId/reply", protect, createReply)
 
 /**
@@ -242,7 +244,7 @@ router.post("/comment/:commentId/reply", protect, createReply)
  *       400:
  *         description: Invalid ID
  */
- 
+
 router.patch("/comment/:id/reply/:replyId", protect, isReplyAuthor, updateReply)
 
 /**
@@ -270,7 +272,7 @@ router.patch("/comment/:id/reply/:replyId", protect, isReplyAuthor, updateReply)
  *       404:
  *         description: Comment or reply not found
  */
- 
+
  router.delete("/comment/:id/reply/:replyId", protect, isReplyAuthorOrAdmin, deleteReply)
 
 /**
@@ -337,4 +339,4 @@ export default router
 
 */
 
-router.get("/blog/comment/:commentId/replies", fetchReplies)
+router.get("/blog/comment/:commentId/replies", optionalUser, fetchReplies)
