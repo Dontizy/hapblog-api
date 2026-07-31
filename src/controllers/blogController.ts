@@ -10,15 +10,14 @@ import { UploadApiResponse } from "cloudinary";
 import Comment from "../models/Comment.js";
 import Reply from "../models/Reply.js";
 import { createNotification } from "../utils/createNotification.js";
-import Notification from "../models/Notification.js";
-import type { IBlog } from "../models/Blog.js";
+import { isBlogCategory } from "../config/categoryGaurd.js";
 
 export const createBlogPost = asyncHandler(
   async (req: Request<{}, {}, blogCreateType>, res: Response) => {
-    const { title, content } = req.body;
+    const { title, content, category } = req.body;
 
-    if (!title || !content) {
-      throw new AppError("Title and Content can't be empty!", 400);
+    if (!title || !content || !category) {
+      throw new AppError("Title, Content and Category can't be empty!", 400);
     }
     const user = req.user;
     if (!user) {
@@ -26,7 +25,7 @@ export const createBlogPost = asyncHandler(
     }
     const userId = user._id;
 
-    const blogData: CreateBlogDTO = { title, content, author: userId };
+    const blogData: CreateBlogDTO = { title, content, category, author: userId };
 
     if (req.file) {
       const upload = (await uploadToCloudinary(req.file)) as UploadApiResponse;
@@ -63,6 +62,12 @@ export const getAllBlogPost = asyncHandler(
             $options: "i",
           },
         },
+        {
+          category:{
+            $regex: search,
+            $options: "i",
+          }
+        }
       ];
     }
 
@@ -128,7 +133,7 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
 export const updateBlogPost = asyncHandler(
   async (req: Request<{}, {}, updateBlogType>, res: Response) => {
     const { id } = req.params as { id: string };
-    const { title, content } = req.body;
+    const { title, content, category } = req.body;
     if (!mongoose.isValidObjectId(id)) {
       throw new AppError("Invalid blog id", 400);
     }
@@ -144,6 +149,10 @@ export const updateBlogPost = asyncHandler(
     if (typeof content === "string") {
       blog.content = content;
     }
+    if (isBlogCategory(category)) {
+      blog.category = category;
+    }
+
     if (req.file) {
       const upload = (await uploadToCloudinary(req.file)) as UploadApiResponse;
       blog.imageUrl = upload.secure_url;

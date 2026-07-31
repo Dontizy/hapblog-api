@@ -52,43 +52,51 @@ const userId = user._id
   })
 })
 
-export const fetchComments=asyncHandler(async(req:Request, res:Response)=>{
-  const {id} = req.params as { id:string }
+
+export const fetchComments = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.max(1, Number(req.query.limit) || 10);
   const skip = (page - 1) * limit;
 
-  if(!mongoose.isValidObjectId(id)){
-    throw new AppError("Invalid blog post ID", 400)
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid blog post ID", 400);
   }
-  const blog = await Blog.findById(id)
-  if(!blog){
-    throw new AppError("Blog post not found", 404)
+
+  const blog = await Blog.findById(id);
+
+  if (!blog) {
+    throw new AppError("Blog post not found", 404);
   }
+
   const [comments, totalComments] = await Promise.all([
-  Comment.find({ blog: id }).skip(skip).limit(limit).sort({ createdAt: -1 })
-    .populate("author", "name avatar")
-    .populate("repliesCount")
-    .populate({
-      path: "replies",
-      populate: {
-        path: "author",
-        select: "name avatar",
-      },
-    }),
+    Comment.find({ blog: id })
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .populate("author", "name avatar")
+      .populate("repliesCount"),
 
-  Comment.countDocuments({ blog: id }),
+    Comment.countDocuments({ blog: id }),
+  ]);
 
-]);
+  const userId = req.user?._id;
+
+  const commentsWithLikeStatus = comments.map((comment) => ({
+    ...comment.toObject(),
+    isLiked:
+      !!userId && comment.likes.some((like) => like.equals(userId)),
+  }));
 
   return res.status(200).json({
-    success:true,
+    success: true,
     totalComments,
-    comments,
-    currentPage:page,
-    totalPages:Math.ceil(totalComments / limit)
-  })
-})
+    comments: commentsWithLikeStatus,
+    currentPage: page,
+    totalPages: Math.ceil(totalComments / limit),
+  });
+});
 
 export const updateComment = asyncHandler(async(req:Request, res:Response)=>{
   const {id,commentId} = req.params as {id:string, commentId:string}
