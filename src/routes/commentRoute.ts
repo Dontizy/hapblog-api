@@ -1,12 +1,29 @@
-import {Router} from "express";
-import {protect} from "../middleware/authMiddleware.js"
-import {createComment, fetchComments, updateComment, deleteComment, toggleLikeComment} from "../controllers/commentController.js";
-import {isCommentAuthorOrAdmin, isCommentAuthor, isReplyAuthorOrAdmin, isReplyAuthor} from "../middleware/authorizedUser.js"
-import { createReply, updateReply,toggleReplyLike, deleteReply, fetchReplies } from "../controllers/replyController.js"
+import { Router } from "express";
+import { protect } from "../middleware/authMiddleware.js";
+import {
+  createComment,
+  fetchComments,
+  updateComment,
+  deleteComment,
+  toggleLikeComment,
+} from "../controllers/commentController.js";
+import {
+  isCommentAuthorOrAdmin,
+  isCommentAuthor,
+  isReplyAuthorOrAdmin,
+  isReplyAuthor,
+} from "../middleware/authorizedUser.js";
+import {
+  createReply,
+  updateReply,
+  toggleReplyLike,
+  deleteReply,
+  fetchReplies,
+} from "../controllers/replyController.js";
 import { optionalUser } from "../middleware/optionalUser.js";
-optionalUser
+optionalUser;
 
-const router = Router()
+const router = Router();
 
 /**
  * @swagger
@@ -29,9 +46,9 @@ const router = Router()
  *       404:
  *         description: Blog not found
  */
-router.get("/post/:id/comments", optionalUser, fetchComments)
+router.get("/post/:id/comments", optionalUser, fetchComments);
 
- /**
+/**
  * @swagger
  * /blog/post/{id}/comment/:
  *   post:
@@ -62,7 +79,7 @@ router.get("/post/:id/comments", optionalUser, fetchComments)
  *       404:
  *         description: Blog not found
  */
-router.post("/post/:id/comment", protect, createComment)
+router.post("/post/:id/comment", protect, createComment);
 
 /**
  * @swagger
@@ -103,7 +120,12 @@ router.post("/post/:id/comment", protect, createComment)
  *         description: Comment or blog not found
  */
 
-router.patch("/:id/comment/:commentId", protect, isCommentAuthor, updateComment)
+router.patch(
+  "/:id/comment/:commentId",
+  protect,
+  isCommentAuthor,
+  updateComment,
+);
 /**
  * @swagger
  * /blog/{id}/comment/{commentId}:
@@ -143,7 +165,12 @@ router.patch("/:id/comment/:commentId", protect, isCommentAuthor, updateComment)
  *         description: Unauthorized
  */
 
- router.delete("/blog/:id/comment/:commentId", protect, isCommentAuthorOrAdmin, deleteComment)
+router.delete(
+  "/blog/:id/comment/:commentId",
+  protect,
+  isCommentAuthorOrAdmin,
+  deleteComment,
+);
 /**
  * @swagger
  * /blog/{id}/comment/{commentId}/like:
@@ -179,7 +206,7 @@ router.patch("/:id/comment/:commentId", protect, isCommentAuthor, updateComment)
  *       404:
  *         description: Blog post comment not found
  */
-router.patch("/:id/comment/:commentId/like", protect, toggleLikeComment)
+router.patch("/:id/comment/:commentId/like", protect, toggleLikeComment);
 
 /**
  * @swagger
@@ -213,7 +240,7 @@ router.patch("/:id/comment/:commentId/like", protect, toggleLikeComment)
  *         description: Comment not found
  */
 
-router.post("/comment/:commentId/reply", protect, createReply)
+router.post("/comment/:commentId/reply", protect, createReply);
 
 /**
  * @swagger
@@ -245,7 +272,12 @@ router.post("/comment/:commentId/reply", protect, createReply)
  *         description: Invalid ID
  */
 
-router.patch("/comment/:id/reply/:replyId", protect, isReplyAuthor, updateReply)
+router.patch(
+  "/comment/:id/reply/:replyId",
+  protect,
+  isReplyAuthor,
+  updateReply,
+);
 
 /**
  * @swagger
@@ -273,7 +305,12 @@ router.patch("/comment/:id/reply/:replyId", protect, isReplyAuthor, updateReply)
  *         description: Comment or reply not found
  */
 
- router.delete("/comment/:id/reply/:replyId", protect, isReplyAuthorOrAdmin, deleteReply)
+router.delete(
+  "/comment/:id/reply/:replyId",
+  protect,
+  isReplyAuthorOrAdmin,
+  deleteReply,
+);
 
 /**
  * @swagger
@@ -301,18 +338,16 @@ router.patch("/comment/:id/reply/:replyId", protect, isReplyAuthor, updateReply)
  *         description: Reply not found
  */
 
- router.patch("/comment/:id/reply/:replyId/like", protect, toggleReplyLike)
-export default router
+router.patch("/comment/:id/reply/:replyId/like", protect, toggleReplyLike);
 
 /**
 
 * @swagger
 * /blog/comment/{commentId}/replies:
 * get:
-* summary: Get replies for a comment
-* tags:
-*   - Replies
-* parameters:
+*   summary: Get replies for a comment
+*   tags: [Replies]
+*   parameters:
 *   - in: path
 *     name: commentId
 *     required: true
@@ -339,4 +374,6 @@ export default router
 
 */
 
-router.get("/blog/comment/:commentId/replies", optionalUser, fetchReplies)
+router.get("/comment/:commentId/replies", optionalUser, fetchReplies);
+
+export default router;
