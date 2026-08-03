@@ -21,7 +21,6 @@ import {
   fetchReplies,
 } from "../controllers/replyController.js";
 import { optionalUser } from "../middleware/optionalUser.js";
-optionalUser;
 
 const router = Router();
 
@@ -50,7 +49,7 @@ router.get("/post/:id/comments", optionalUser, fetchComments);
 
 /**
  * @swagger
- * /blog/post/{id}/comment/:
+ * /blog/post/{id}/comment:
  *   post:
  *     summary: Create a comment
  *     tags: [Comments]
@@ -119,13 +118,13 @@ router.post("/post/:id/comment", protect, createComment);
  *       404:
  *         description: Comment or blog not found
  */
-
 router.patch(
   "/:id/comment/:commentId",
   protect,
   isCommentAuthor,
   updateComment,
 );
+
 /**
  * @swagger
  * /blog/{id}/comment/{commentId}:
@@ -141,36 +140,30 @@ router.patch(
  *         required: true
  *         schema:
  *           type: string
- *
  *       - in: path
  *         name: commentId
  *         required: true
  *         schema:
  *           type: string
- *
  *     responses:
  *       200:
  *         description: Comment deleted successfully
- *
  *       400:
  *         description: Invalid comment ID
- *
  *       404:
  *         description: Blog post or comment not found
- *
  *       403:
  *         description: Permission denied, not author or admin
- *
  *       401:
  *         description: Unauthorized
  */
-
 router.delete(
-  "/blog/:id/comment/:commentId",
+  "/:id/comment/:commentId",
   protect,
   isCommentAuthorOrAdmin,
   deleteComment,
 );
+
 /**
  * @swagger
  * /blog/{id}/comment/{commentId}/like:
@@ -186,23 +179,18 @@ router.delete(
  *         required: true
  *         schema:
  *           type: string
- *
  *       - in: path
  *         name: commentId
  *         required: true
  *         schema:
  *           type: string
- *
  *     responses:
  *       200:
  *         description: Comment liked or unliked successfully
- *
  *       400:
  *         description: Invalid blog post ID or comment ID
- *
  *       401:
  *         description: Unauthorized
- *
  *       404:
  *         description: Blog post comment not found
  */
@@ -239,7 +227,6 @@ router.patch("/:id/comment/:commentId/like", protect, toggleLikeComment);
  *       404:
  *         description: Comment not found
  */
-
 router.post("/comment/:commentId/reply", protect, createReply);
 
 /**
@@ -271,7 +258,6 @@ router.post("/comment/:commentId/reply", protect, createReply);
  *       400:
  *         description: Invalid ID
  */
-
 router.patch(
   "/comment/:id/reply/:replyId",
   protect,
@@ -304,7 +290,6 @@ router.patch(
  *       404:
  *         description: Comment or reply not found
  */
-
 router.delete(
   "/comment/:id/reply/:replyId",
   protect,
@@ -337,43 +322,39 @@ router.delete(
  *       404:
  *         description: Reply not found
  */
-
 router.patch("/comment/:id/reply/:replyId/like", protect, toggleReplyLike);
 
 /**
-
-* @swagger
-* /blog/comment/{commentId}/replies:
-* get:
-*   summary: Get replies for a comment
-*   tags: [Replies]
-*   parameters:
-*   - in: path
-*     name: commentId
-*     required: true
-*     schema:
-*       type: string
-*     description: Comment ID
-*   - in: query
-*     name: page
-*     schema:
-*       type: integer
-*       default: 1
-*   - in: query
-*     name: limit
-*     schema:
-*       type: integer
-*       default: 10
-* responses:
-*   200:
-*     description: Replies fetched successfully
-*   400:
-*     description: Invalid comment ID
-*   404:
-*     description: Comment not found
-
-*/
-
+ * @swagger
+ * /blog/comment/{commentId}/replies:
+ *   get:
+ *     summary: Get replies for a comment
+ *     tags: [Replies]
+ *     parameters:
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Comment ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Replies fetched successfully
+ *       400:
+ *         description: Invalid comment ID
+ *       404:
+ *         description: Comment not found
+ */
 router.get("/comment/:commentId/replies", optionalUser, fetchReplies);
 
 export default router;

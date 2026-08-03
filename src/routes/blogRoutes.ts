@@ -1,12 +1,20 @@
 import { Router } from "express";
-import { createBlogPost, getAllBlogPost, getBlogPost, updateBlogPost, deleteBlogPost, toggleLikePost } from "../controllers/blogController.js";
-import {toggleBookmark, getBookmarks} from "../controllers/bookmarkController.js"
+import {
+  createBlogPost,
+  getAllBlogPost,
+  getBlogPost,
+  updateBlogPost,
+  deleteBlogPost,
+  toggleLikePost,
+} from "../controllers/blogController.js";
+import { toggleBookmark, getBookmarks } from "../controllers/bookmarkController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { upload } from "../utils/uploader.js";
 import { isAuthorized } from "../middleware/authorizedUser.js";
 import { optionalUser } from "../middleware/optionalUser.js";
 
-const router = Router()
+const router = Router();
+
 /**
  * @openapi
  * /blog/post:
@@ -44,24 +52,50 @@ const router = Router()
  *       401:
  *         description: Unauthorized
  */
-router.post('/post', protect, upload.single('image'), createBlogPost)
+router.post("/post", protect, upload.single("image"), createBlogPost);
 
 /**
  * @openapi
  * /blog/posts:
  *   get:
  *     summary: Get all blog posts
- *     description: Retrieve all blog posts
+ *     description: Retrieve blog posts with optional search, filtering, sorting, and pagination
  *     tags:
  *       - Blogs
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         required: false
+ *         description: Search term to match against post title and/or content
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: category
+ *         required: false
+ *         description: Filter posts by category
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: author
+ *         required: false
+ *         description: Filter posts by author ID
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         description: Number of posts to return per page
+ *         schema:
+ *           type: integer
+ *           default: 10
  *     responses:
  *       200:
  *         description: Blog posts retrieved successfully
  *       500:
  *         description: Internal server error
  */
-
-router.get('/posts', optionalUser, getAllBlogPost)
+router.get("/posts", optionalUser, getAllBlogPost);
 
 /**
  * @openapi
@@ -83,9 +117,8 @@ router.get('/posts', optionalUser, getAllBlogPost)
  *         description: Ok
  *       404:
  *         description: Blog post not found
- *
  */
-router.get('/post/:id', optionalUser, getBlogPost)
+router.get("/post/:id", optionalUser, getBlogPost);
 
 /**
  * @openapi
@@ -130,7 +163,7 @@ router.get('/post/:id', optionalUser, getBlogPost)
  *       403:
  *         description: Action denied, only author and admin allowed
  */
-router.put('/post/:id', protect, isAuthorized, upload.single("image"), updateBlogPost)
+router.put("/post/:id", protect, isAuthorized, upload.single("image"), updateBlogPost);
 
 /**
  * @openapi
@@ -158,11 +191,10 @@ router.put('/post/:id', protect, isAuthorized, upload.single("image"), updateBlo
  *         description: Unauthorized
  *       403:
  *         description: Action denied, only author and admin allowed
- *
  */
-router.delete('/post/:id', protect, isAuthorized, deleteBlogPost)
+router.delete("/post/:id", protect, isAuthorized, deleteBlogPost);
 
- /**
+/**
  * @swagger
  * /blog/post/{id}/like:
  *   patch:
@@ -177,24 +209,19 @@ router.delete('/post/:id', protect, isAuthorized, deleteBlogPost)
  *         required: true
  *         schema:
  *           type: string
- *
  *     responses:
  *       200:
  *         description: Blog liked or unliked successfully
- *
  *       400:
  *         description: Invalid blog ID
- *
  *       401:
  *         description: Unauthorized
- *
  *       404:
  *         description: Blog post not found
  */
+router.patch("/post/:id/like", protect, toggleLikePost);
 
- router.patch("/post/:id/like", protect, toggleLikePost)
-
-  /**
+/**
  * @swagger
  * /blog/{id}/bookmark:
  *   patch:
@@ -217,11 +244,7 @@ router.delete('/post/:id', protect, isAuthorized, deleteBlogPost)
  *       404:
  *         description: Blog or user not found
  */
- router.patch(
-  "/:id/bookmark",
-  protect,
-  toggleBookmark
-);
+router.patch("/:id/bookmark", protect, toggleBookmark);
 
 /**
  * @swagger
@@ -238,10 +261,6 @@ router.delete('/post/:id', protect, isAuthorized, deleteBlogPost)
  *       401:
  *         description: Unauthorized
  */
-router.get(
-  "/bookmarks",
-  protect,
-  getBookmarks
-);
-export default router;
+router.get("/bookmarks", protect, getBookmarks);
 
+export default router;

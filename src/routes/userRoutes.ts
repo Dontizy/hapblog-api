@@ -123,7 +123,6 @@ router.post("/login", login);
  *       404:
  *         description: User not found
  */
-
 router.delete("/auth/delete/:id", protect, isAdmin, deleteUser);
 
 /**
@@ -209,6 +208,7 @@ router.put("/auth/password-update", protect, changePassword);
  *         description: User not found
  */
 router.patch("/auth/admin/:id", protect, isAdmin, addOrRemoveAdmin);
+
 /**
  * @swagger
  * /user/auth/profile:
@@ -356,10 +356,11 @@ router.get("/auth/notifications", protect, getNotifications);
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: notificationId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *         description: Notification ID
  *     responses:
  *       200:
  *         description: Notification marked as read
@@ -501,6 +502,13 @@ router.patch("/auth/:userId/follow", protect, followUser);
  *       - Users
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user whose profile to fetch
  *     responses:
  *       200:
  *         description: User profile fetched successfully
@@ -508,4 +516,5 @@ router.patch("/auth/:userId/follow", protect, followUser);
  *         description: User not found
  */
 router.get("/auth/:userId", protect, getUserProfile);
+
 export default router;
