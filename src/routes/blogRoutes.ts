@@ -76,9 +76,9 @@ router.post("/post", protect, upload.single("image"), createBlogPost);
  *         schema:
  *           type: string
  *       - in: query
- *         name: author
+ *         name: content
  *         required: false
- *         description: Filter posts by author ID
+ *         description: Filter posts by content
  *         schema:
  *           type: integer
  *           default: 1
