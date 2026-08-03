@@ -11,6 +11,8 @@ import Comment from "../models/Comment.js";
 import Reply from "../models/Reply.js";
 import { createNotification } from "../utils/createNotification.js";
 import { isBlogCategory } from "../config/categoryGaurd.js";
+import { getReadingTime } from "../utils/readingTime.js";
+import User from "../models/User.js";
 
 export const createBlogPost = asyncHandler(
   async (req: Request<{}, {}, blogCreateType>, res: Response) => {
@@ -25,7 +27,12 @@ export const createBlogPost = asyncHandler(
     }
     const userId = user._id;
 
-    const blogData: CreateBlogDTO = { title, content, category, author: userId };
+    const blogData: CreateBlogDTO = {
+      title,
+      content,
+      category,
+      author: userId,
+    };
 
     if (req.file) {
       const upload = (await uploadToCloudinary(req.file)) as UploadApiResponse;
@@ -63,11 +70,11 @@ export const getAllBlogPost = asyncHandler(
           },
         },
         {
-          category:{
+          category: {
             $regex: search,
             $options: "i",
-          }
-        }
+          },
+        },
       ];
     }
 
@@ -80,19 +87,31 @@ export const getAllBlogPost = asyncHandler(
         .populate("commentsCount"),
       Blog.countDocuments(),
     ]);
+
     const userId = req.user?._id;
 
-    const blogsWithLikeStatus = blogs.map((blog) => {
+    let bookmarkedIds = new Set<string>();
+
+    if (userId) {
+      const user = await User.findById(userId).select("bookmarks");
+
+      bookmarkedIds = new Set(user?.bookmarks.map((id) => id.toString()) ?? []);
+    }
+
+    const blogsWithStatus = blogs.map((blog) => {
       const blogObject = blog.toObject();
 
       return {
         ...blogObject,
         isLiked: !!userId && blog.likes.some((like) => like.equals(userId)),
+        isBookmarked: bookmarkedIds.has(blog._id.toString()),
+        readingTime: getReadingTime(blogObject.content),
       };
     });
+
     res.status(200).json({
       success: true,
-      blogs:blogsWithLikeStatus,
+      blogs: blogsWithStatus,
       currentPage: page,
       totalPages: Math.ceil(totalBlogs / limit),
       totalBlogs,
@@ -117,15 +136,25 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
   }
   const userId = req.user?._id;
 
+  let bookmarkedIds = new Set<string>();
+
+  if (userId) {
+    const user = await User.findById(userId).select("bookmarks");
+
+    bookmarkedIds = new Set(user?.bookmarks.map((id) => id.toString()) ?? []);
+  }
+
   const isLiked = !!userId && blog.likes.some((like) => like.equals(userId));
   const blogData = blog.toObject();
- console.log("isLiked",isLiked)
+  console.log("isLiked", isLiked);
   return res.status(200).json({
     success: true,
     blog: {
       ...blogData,
       commentsCount,
       isLiked,
+      isBookmarked: bookmarkedIds.has(blog._id.toString()),
+      readingTime: getReadingTime(blogData.content),
     },
   });
 });
