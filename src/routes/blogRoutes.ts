@@ -7,7 +7,10 @@ import {
   deleteBlogPost,
   toggleLikePost,
 } from "../controllers/blogController.js";
-import { toggleBookmark, getBookmarks } from "../controllers/bookmarkController.js";
+import {
+  toggleBookmark,
+  getBookmarks,
+} from "../controllers/bookmarkController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { upload } from "../utils/uploader.js";
 import { isAuthorized } from "../middleware/authorizedUser.js";
@@ -59,41 +62,81 @@ router.post("/post", protect, upload.single("image"), createBlogPost);
  * /blog/posts:
  *   get:
  *     summary: Get all blog posts
- *     description: Retrieve blog posts with optional search, filtering, sorting, and pagination
+ *     description: |
+ *       Returns a paginated list of blog posts.
+ *
+ *       Supports searching across:
+ *       - Title
+ *       - Content
+ *       - Category
+ *
+ *       Search is case-insensitive.
  *     tags:
  *       - Blogs
  *     parameters:
  *       - in: query
  *         name: search
  *         required: false
- *         description: Search term to match against post title and/or content
+ *         description: Search by title, content, or category.
  *         schema:
  *           type: string
+ *           example: React
+ *
  *       - in: query
- *         name: category
+ *         name: page
  *         required: false
- *         description: Filter posts by category
- *         schema:
- *           type: string
- *       - in: query
- *         name: content
- *         required: false
- *         description: Filter posts by content
+ *         description: Page number.
  *         schema:
  *           type: integer
  *           default: 1
+ *           minimum: 1
+ *           example: 1
+ *
  *       - in: query
  *         name: limit
  *         required: false
- *         description: Number of posts to return per page
+ *         description: Number of blog posts per page.
  *         schema:
  *           type: integer
  *           default: 10
+ *           minimum: 1
+ *           example: 10
+ *
  *     responses:
  *       200:
- *         description: Blog posts retrieved successfully
+ *         description: Blog posts retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *
+ *                 blogs:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Blog'
+ *
+ *                 currentPage:
+ *                   type: integer
+ *                   example: 1
+ *
+ *                 totalPages:
+ *                   type: integer
+ *                   example: 5
+ *
+ *                 totalBlogs:
+ *                   type: integer
+ *                   example: 42
+ *
+ *                 limit:
+ *                   type: integer
+ *                   example: 10
+ *
  *       500:
- *         description: Internal server error
+ *         description: Internal server error.
  */
 router.get("/posts", optionalUser, getAllBlogPost);
 
@@ -163,7 +206,13 @@ router.get("/post/:id", optionalUser, getBlogPost);
  *       403:
  *         description: Action denied, only author and admin allowed
  */
-router.put("/post/:id", protect, isAuthorized, upload.single("image"), updateBlogPost);
+router.put(
+  "/post/:id",
+  protect,
+  isAuthorized,
+  upload.single("image"),
+  updateBlogPost,
+);
 
 /**
  * @openapi
