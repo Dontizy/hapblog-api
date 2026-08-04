@@ -18,12 +18,13 @@ import { optionalUser } from "../middleware/optionalUser.js";
 
 const router = Router();
 
+
 /**
  * @openapi
  * /blog/post:
  *   post:
  *     summary: Create a blog post
- *     description: Create a new blog post with image upload
+ *     description: Create a new blog post with an optional image upload.
  *     tags:
  *       - Blogs
  *     security:
@@ -37,13 +38,44 @@ const router = Router();
  *             required:
  *               - title
  *               - content
+ *               - category
  *             properties:
  *               title:
  *                 type: string
- *                 example: My first blog post
+ *                 example: My First Blog Post
  *               content:
  *                 type: string
- *                 example: This is the content of my blog post
+ *                 example: This is the content of my blog post.
+ *               category:
+ *                 type: string
+ *                 enum:
+ *                   - Technology
+ *                   - Programming
+ *                   - Web Development
+ *                   - Mobile Development
+ *                   - Artificial Intelligence
+ *                   - Cybersecurity
+ *                   - Data Science
+ *                   - Business
+ *                   - Finance
+ *                   - Education
+ *                   - Lifestyle
+ *                   - Health
+ *                   - Fitness
+ *                   - Travel
+ *                   - Food
+ *                   - Entertainment
+ *                   - Sports
+ *                   - Gaming
+ *                   - Movies
+ *                   - Music
+ *                   - Fashion
+ *                   - Science
+ *                   - Politics
+ *                   - News
+ *                   - Opinion
+ *                   - Other
+ *                 example: Technology
  *               image:
  *                 type: string
  *                 format: binary
@@ -162,13 +194,12 @@ router.get("/posts", optionalUser, getAllBlogPost);
  *         description: Blog post not found
  */
 router.get("/post/:id", optionalUser, getBlogPost);
-
 /**
  * @openapi
  * /blog/post/{id}:
  *   put:
  *     summary: Update a blog post
- *     description: Update a blog post by its ID
+ *     description: Update an existing blog post by its ID. All fields are optional; only the provided fields will be updated.
  *     tags:
  *       - Blogs
  *     security:
@@ -189,22 +220,55 @@ router.get("/post/:id", optionalUser, getBlogPost);
  *             properties:
  *               title:
  *                 type: string
- *                 example: Updated blog title
+ *                 example: Updated Blog Title
  *               content:
  *                 type: string
- *                 example: Updated blog content
- *               imageUrl:
+ *                 example: Updated content of the blog post.
+ *               category:
+ *                 type: string
+ *                 enum:
+ *                   - Technology
+ *                   - Programming
+ *                   - AI
+ *                   - Business
+ *                   - Design
+ *                   - Lifestyle
+ *                   - Health
+ *                   - Education
+ *                   - Travel
+ *                   - Sports
+ *                   - Entertainment
+ *                   - News
+ *                   - Finance
+ *                   - Food
+ *                   - Politics
+ *                   - Web Development
+ *                   - Mobile Development
+ *                   - Cybersecurity
+ *                   - Data Science
+ *                   - Science
+ *                   - Movies
+ *                   - Games
+ *                   - Fashion
+ *                   - Opinion
+ *                   - Fitness
+ *                   - Other
+ *                   - Music
+ *                 example: Programming
+ *               image:
  *                 type: string
  *                 format: binary
  *     responses:
  *       200:
  *         description: Blog post updated successfully
- *       404:
- *         description: Blog post not found
+ *       400:
+ *         description: Invalid request body
  *       401:
  *         description: Unauthorized
  *       403:
- *         description: Action denied, only author and admin allowed
+ *         description: Action denied, only the author or an admin can update this post
+ *       404:
+ *         description: Blog post not found
  */
 router.put(
   "/post/:id",

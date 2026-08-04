@@ -1,19 +1,43 @@
 export const BLOG_CATEGORIES = [
+  // Tech
   "Technology",
   "Programming",
+  "Web Development",
+  "Mobile Development",
   "AI",
+  "Cybersecurity",
+  "Data Science",
+
+  // Business
   "Business",
-  "Design",
+  "Finance",
+
+  // Lifestyle
   "Lifestyle",
   "Health",
-  "Education",
+  "Fitness",
   "Travel",
-  "Sports",
-  "Entertainment",
-  "News",
-  "Finance",
   "Food",
+  "Fashion",
+
+  // Education
+  "Education",
+  "Science",
+
+  // Entertainment
+  "Entertainment",
+  "Movies",
+  "Music",
+  "Gaming",
+  "Sports",
+
+  // Society
+  "News",
   "Politics",
+  "Opinion",
+
+  // Misc
+  "Design",
   "Other",
 ] as const;
 
