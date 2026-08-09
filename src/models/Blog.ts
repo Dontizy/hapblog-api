@@ -1,14 +1,14 @@
 import { HydratedDocument, Schema, Types, model } from "mongoose";
-import { BLOG_CATEGORIES,BlogCategory } from "../types/blogCategory.js";
-
+import { BLOG_CATEGORIES, BlogCategory } from "../types/blogCategory.js";
 
 export interface IBlog {
   title: string;
   content: string;
   imageUrl?: string;
-  category:BlogCategory;
+  category: BlogCategory;
   author: Types.ObjectId;
   likes: Types.ObjectId[];
+  status?: "draft" | "published";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,6 +37,11 @@ const blogSchema = new Schema<IBlog>(
         ref: "User",
       },
     ],
+    status: {
+      type: String,
+      enum: ["draft", "published"],
+      default: "draft",
+    },
     author: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -44,12 +49,12 @@ const blogSchema = new Schema<IBlog>(
       index: true,
     },
     category: {
-  type: String,
-  required: [true, "Please select a category"],
-  enum: BLOG_CATEGORIES,
-  trim:true,
-  index:true
-},
+      type: String,
+      required: [true, "Please select a category"],
+      enum: BLOG_CATEGORIES,
+      trim: true,
+      index: true,
+    },
   },
   {
     timestamps: true,

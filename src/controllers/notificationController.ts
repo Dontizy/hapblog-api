@@ -11,7 +11,7 @@ export const getNotifications =
       res: Response
     ) => {
       const userId = req.user?.id
-     
+
      if(!userId){
        throw new AppError("User not authorized", 401)
      }
@@ -24,13 +24,13 @@ export const getNotifications =
           })
           .populate(
             "sender",
-            "name avatar"
+            "username name avatar"
           )
           .populate(
             "blog",
             "title"
           );
-      
+
       const unReadCount = await Notification.countDocuments({isRead:false, recipient:userId})
 
       return res.status(200).json({
@@ -38,10 +38,10 @@ export const getNotifications =
         notifications,
         unReadCount
       });
-    
+
     });
-  
-  
+
+
 export const markNotificationAsRead =
   asyncHandler(
     async (

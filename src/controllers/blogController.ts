@@ -16,15 +16,18 @@ import User from "../models/User.js";
 
 export const createBlogPost = asyncHandler(
   async (req: Request<{}, {}, blogCreateType>, res: Response) => {
-    const { title, content, category } = req.body;
+    const { title, content, category, status } = req.body;
 
     if (!title || !content || !category) {
       throw new AppError("Title, Content and Category can't be empty!", 400);
     }
+
     const user = req.user;
+
     if (!user) {
       throw new AppError("Not authorized", 401);
     }
+
     const userId = user._id;
 
     const blogData: CreateBlogDTO = {
@@ -32,14 +35,24 @@ export const createBlogPost = asyncHandler(
       content,
       category,
       author: userId,
+      status: status ?? "draft",
     };
 
     if (req.file) {
       const upload = (await uploadToCloudinary(req.file)) as UploadApiResponse;
       blogData.imageUrl = upload.secure_url;
     }
+
+    if (
+      status === "published" &&
+      user.suspendedUntil &&
+      user.suspendedUntil > new Date()
+    ) {
+      throw new AppError("Suspended users cannot publish posts", 403);
+    }
     const blog = await Blog.create(blogData);
-    res.status(201).json({
+
+    return res.status(201).json({
       success: true,
       blog,
     });
@@ -53,7 +66,9 @@ export const getAllBlogPost = asyncHandler(
     const skip = (page - 1) * limit;
     const search = String(req.query.search || "").trim();
 
-    const query: Record<string, unknown> = {};
+    const query: Record<string, unknown> = {
+      status: "published",
+    };
 
     if (search) {
       query.$or = [
@@ -83,9 +98,9 @@ export const getAllBlogPost = asyncHandler(
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("author", "name avatar bio")
+        .populate("author", "username name avatar bio")
         .populate("commentsCount"),
-      Blog.countDocuments(),
+      Blog.countDocuments(query),
     ]);
 
     const userId = req.user?._id;
@@ -127,7 +142,11 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const [blog, commentsCount] = await Promise.all([
-    Blog.findById(id).populate("author", "name avatar bio"),
+    Blog.findOne({
+      _id: id,
+      status: "published",
+    }).populate("author", "username name avatar bio"),
+
     Comment.countDocuments({ blog: id }),
   ]);
 
@@ -146,7 +165,7 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
 
   const isLiked = !!userId && blog.likes.some((like) => like.equals(userId));
   const blogData = blog.toObject();
-  console.log("isLiked", isLiked);
+
   return res.status(200).json({
     success: true,
     blog: {
@@ -162,10 +181,12 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
 export const updateBlogPost = asyncHandler(
   async (req: Request<{}, {}, updateBlogType>, res: Response) => {
     const { id } = req.params as { id: string };
-    const { title, content, category } = req.body;
+    const { title, content, category, status } = req.body;
+
     if (!mongoose.isValidObjectId(id)) {
       throw new AppError("Invalid blog id", 400);
     }
+
     const blog = await Blog.findById(id);
 
     if (!blog) {
@@ -175,18 +196,27 @@ export const updateBlogPost = asyncHandler(
     if (typeof title === "string") {
       blog.title = title;
     }
+
     if (typeof content === "string") {
       blog.content = content;
     }
+
     if (isBlogCategory(category)) {
       blog.category = category;
     }
 
+    if (status === "draft" || status === "published") {
+      blog.status = status;
+    }
+
     if (req.file) {
       const upload = (await uploadToCloudinary(req.file)) as UploadApiResponse;
+
       blog.imageUrl = upload.secure_url;
     }
+
     await blog.save();
+
     return res.status(200).json({
       success: true,
       blog,
@@ -264,9 +294,53 @@ export const toggleLikePost = asyncHandler(
 
     return res.status(200).json({
       success: true,
-      message: hasLiked
-        ? "Post unliked successfully"
-        : "Post liked successfully",
+      message: hasLiked ? "Post unliked" : "Post liked",
+    });
+  },
+);
+
+export const getMyDrafts = asyncHandler(async (req: Request, res: Response) => {
+  const user = req.user;
+
+  if (!user) {
+    throw new AppError("Not authorized", 401);
+  }
+
+  const drafts = await Blog.find({
+    author: user._id,
+    status: "draft",
+  })
+    .sort({ updatedAt: -1 })
+    .populate("author", "username name avatar bio");
+
+  return res.status(200).json({
+    success: true,
+    drafts,
+  });
+});
+
+export const publishBlogPost = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+
+    if (!mongoose.isValidObjectId(id)) {
+      throw new AppError("Invalid blog id", 400);
+    }
+
+    const blog = await Blog.findById(id);
+
+    if (!blog) {
+      throw new AppError("Post not found", 404);
+    }
+
+    blog.status = "published";
+
+    await blog.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Post published successfully",
+      blog,
     });
   },
 );

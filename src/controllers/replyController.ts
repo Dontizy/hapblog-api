@@ -4,7 +4,7 @@ import Comment from "../models/Comment.js";
 import { AppError } from "../utils/AppError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import mongoose from "mongoose";
-import Notification from "../models/Notification.js";
+
 import { createNotification } from "../utils/createNotification.js";
 
 export const createReply = asyncHandler(async (req: Request, res: Response) => {
@@ -69,7 +69,7 @@ export const fetchReplies = asyncHandler(
 
     const [replies, totalReplies] = await Promise.all([
       Reply.find({ comment: commentId })
-        .populate("author", "avatar name")
+        .populate("author", "avatar name username")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -119,7 +119,7 @@ export const updateReply = asyncHandler(async (req: Request, res: Response) => {
   await reply.save();
   return res.status(200).json({
     success: true,
-    message: "Reply updated successfully",
+    message: "Reply updated",
     reply,
   });
 });
@@ -153,7 +153,7 @@ export const deleteReply = asyncHandler(async (req: Request, res: Response) => {
 
   return res.status(200).json({
     success: true,
-    message: "Reply deleted successfully",
+    message: "Reply deleted",
   });
 });
 
@@ -208,8 +208,8 @@ export const toggleReplyLike = asyncHandler(
       success: true,
       liked: !hasLiked,
       message: hasLiked
-        ? "Reply unliked successfully"
-        : "Reply liked successfully",
+        ? "Reply unliked"
+        : "Reply liked",
     });
   },
 );

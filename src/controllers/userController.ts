@@ -14,6 +14,7 @@ import Comment from "../models/Comment.js";
 import crypto from "crypto";
 import { resend } from "../config/resend.js";
 import { createNotification } from "../utils/createNotification.js";
+import { PopulatedFollower } from "../types/PopulatedFollower.js";
 
 const hashPassword = async (plainPassword: string) => {
   const salt = await bcrypt.genSalt(10);
@@ -22,29 +23,58 @@ const hashPassword = async (plainPassword: string) => {
 
 export const register = asyncHandler(
   async (req: Request<{}, {}, registerType>, res: Response) => {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password)
+    const { username, name, email, password } = req.body;
+
+    if (!username || !name || !email || !password) {
       throw new AppError("All fields are required", 400);
+    }
+
+    const normalizedUsername = username.trim().toLowerCase();
     const normalizedEmail = email.trim().toLowerCase();
-    const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-    if (!emailRegex.test(normalizedEmail))
+
+    if (!/^[a-z0-9_-]{3,30}$/.test(normalizedUsername)) {
+      throw new AppError(
+        "Username must be 3-30 characters and can only contain letters, numbers, underscores, and hyphens",
+        400,
+      );
+    }
+
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+
+    if (!emailRegex.test(normalizedEmail)) {
       throw new AppError("Please add a valid email", 400);
-    const userExist = await User.findOne({ email: normalizedEmail });
-    if (userExist) throw new AppError("User already exists, login", 409);
+    }
+
+    const userExist = await User.findOne({
+      $or: [{ email: normalizedEmail }, { username: normalizedUsername }],
+    });
+
+    if (userExist) {
+      throw new AppError("Username or email already exists", 409);
+    }
+
     const user = await User.create({
       name: name.trim(),
+      username: normalizedUsername,
       email: normalizedEmail,
       password: await hashPassword(password),
     });
+
     const secret = process.env.JWT_SECRET;
-    if (!secret) throw new AppError("Server configuration error", 500);
+
+    if (!secret) {
+      throw new AppError("Server configuration error", 500);
+    }
+
     const token = jwt.sign({ id: String(user._id) }, secret, {
       expiresIn: "1d",
     });
+
     return res.status(201).json({
       user: {
         id: user._id,
         name: user.name,
+        username: user.username,
         email: user.email,
         role: user.role,
         bio: user.bio,
@@ -58,18 +88,22 @@ export const register = asyncHandler(
 //login controller
 export const login = asyncHandler(
   async (req: Request<{}, {}, loginType>, res: Response) => {
-    const { email, password } = req.body;
+    const { identifier, password } = req.body;
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       throw new AppError(
         "Invalid credentials: email and password are required",
         400,
       );
     }
-    const emailLowercase = email.trim().toLowerCase();
-    const user = await User.findOne({ email: emailLowercase }).select(
-      "+password",
-    );
+
+    const user = await User.findOne({
+      $or: [
+        { email: identifier.toLowerCase() },
+        { username: identifier.toLowerCase() },
+      ],
+    }).select("+password");
+
     if (!user) {
       throw new AppError("Invalid credentials", 401);
     }
@@ -87,6 +121,7 @@ export const login = asyncHandler(
     return res.status(200).json({
       user: {
         id: user._id,
+        username: user.username,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -106,7 +141,7 @@ export const allUsers = asyncHandler(async (req: Request, res: Response) => {
   if (search) {
     query.$or = [
       {
-        name: {
+        username: {
           $regex: search,
           $options: "i",
         },
@@ -247,6 +282,7 @@ export const myProfile = asyncHandler(async (req: Request, res: Response) => {
   const blog = await Blog.countDocuments({ author: user._id });
   const userData = {
     id: user._id,
+    username: user.username,
     name: user.name,
     email: user.email,
     avatar: user?.avatar,
@@ -292,36 +328,39 @@ export const avatarUpdate = asyncHandler(
     });
   },
 );
-
 export const forgotPassword = asyncHandler(
   async (req: Request, res: Response) => {
-    const { email } = req.body as { email: string };
+    const { identifier } = req.body as { identifier: string };
 
-    if (!email) {
-      throw new AppError("Email is required", 400);
+    if (!identifier) {
+      throw new AppError("Username or email is required", 400);
     }
 
+    const normalizedIdentifier = identifier.trim().toLowerCase();
+
     const user = await User.findOne({
-      email,
+      $or: [
+        { email: normalizedIdentifier },
+        { username: normalizedIdentifier },
+      ],
     });
 
     if (!user) {
       throw new AppError("User not found", 404);
     }
 
-    // generate raw token
+    // Generate raw token
     const resetToken = crypto.randomBytes(32).toString("hex");
 
-    // hash token
+    // Hash token before storing it
     const hashedToken = crypto
       .createHash("sha256")
       .update(resetToken)
       .digest("hex");
 
-    // save hashed token
     user.resetPasswordToken = hashedToken;
 
-    // expires in 10 mins
+    // Expires in 10 minutes
     user.resetPasswordExpire = new Date(Date.now() + 10 * 60 * 1000);
 
     await user.save();
@@ -336,12 +375,21 @@ export const forgotPassword = asyncHandler(
         <h2>Password Reset</h2>
 
         <p>
-          Click the link below to reset your password
+          We received a request to reset your Hapblog password.
+        </p>
+
+        <p>
+          Click the link below to reset your password.
+          This link expires in 10 minutes.
         </p>
 
         <a href="${resetUrl}">
           Reset Password
         </a>
+
+        <p>
+          If you didn't request a password reset, you can safely ignore this email.
+        </p>
       `,
     });
 
@@ -361,10 +409,14 @@ export const resetPassword = asyncHandler(
       throw new AppError("Password is required", 400);
     }
 
-    // hash incoming token
+    if (password.length < 5) {
+      throw new AppError("Password must be at least 5 characters", 400);
+    }
+
+    // Hash incoming token
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-    // find user
+    // Find user with valid, non-expired token
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
       resetPasswordExpire: {
@@ -376,9 +428,10 @@ export const resetPassword = asyncHandler(
       throw new AppError("Invalid or expired token", 400);
     }
 
+    // Update password
     user.password = await hashPassword(password);
 
-    // clear reset fields
+    // Invalidate reset token
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
 
@@ -424,7 +477,7 @@ export const followUser = asyncHandler(async (req: Request, res: Response) => {
     await userToFollow.save();
     return res.status(200).json({
       success: true,
-      message: `You have unfollowed ${userToFollow.name}`,
+      message: `You have unfollowed ${userToFollow.username}`,
     });
   } else {
     // follow
@@ -441,42 +494,38 @@ export const followUser = asyncHandler(async (req: Request, res: Response) => {
     return res.status(200).json({
       isFollowing: true,
       success: true,
-      message: `You are now following ${userToFollow.name}`,
+      message: `You are now following ${userToFollow.username}`,
     });
   }
 });
 
 export const getUserProfile = asyncHandler(
   async (req: Request, res: Response) => {
-    const { userId } = req.params as { userId: string };
+    const { username } = req.params as { username: string };
 
-    if (!mongoose.isValidObjectId(userId)) {
-      throw new AppError("Invalid user ID", 400);
-    }
-
-    const [user, blogsCount] = await Promise.all([
-      User.findById(userId)
-        .select("name email avatar bio followers following")
-        .lean(),
-      Blog.countDocuments({ author: userId }),
-    ]);
+    const user = await User.findOne({ username })
+      .select("username name email avatar bio followers following")
+      .lean();
 
     if (!user) {
       throw new AppError("User not found", 404);
     }
 
+    const blogsCount = await Blog.countDocuments({
+      author: user._id,
+    });
+
     const currentUserId = req.user?._id?.toString();
 
     const isFollowing = currentUserId
-      ? user.followers.some(
-          (id) => id.toString() === currentUserId
-        )
+      ? user.followers.some((id) => id.toString() === currentUserId)
       : false;
 
     return res.status(200).json({
       success: true,
       user: {
         _id: user._id,
+        username: user.username,
         name: user.name,
         email: user.email,
         avatar: user.avatar,
@@ -489,3 +538,171 @@ export const getUserProfile = asyncHandler(
     });
   },
 );
+
+export const userFollowers = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user?._id;
+
+    if (!mongoose.isValidObjectId(userId)) {
+      throw new AppError("Invalid id", 400);
+    }
+
+    const user = await User.findById(userId)
+      .select("followers following")
+      .populate<{
+        followers: PopulatedFollower[];
+      }>("followers", "username avatar bio");
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+    const followingSet = new Set(user.following.map((id) => id.toString()));
+
+    const followers = user.followers.map((follower) => ({
+      ...follower,
+      isFollowing: followingSet.has(follower._id.toString()),
+    }));
+
+    return res.json({
+      success: true,
+      followers,
+    });
+  },
+);
+
+export const publicUserFollowers = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { username } = req.params as { username: string };
+
+    const user = await User.findOne({ username }).select("followers").populate<{
+      followers: PopulatedFollower[];
+    }>("followers", "username avatar bio");
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    const me = await User.findById(req.user?._id).select("following");
+
+    if (!me) {
+      throw new AppError("Logged-in user not found", 404);
+    }
+
+    const followingSet = new Set(me.following.map((id) => id.toString()));
+
+    const followers = user.followers.map((follower) => ({
+      ...follower,
+      isFollowing: followingSet.has(follower._id.toString()),
+    }));
+
+    return res.status(200).json({
+      success: true,
+      followers,
+    });
+  },
+);
+
+export const publicUserFollowing = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { username } = req.params as { username: string };
+
+    const user = await User.findOne({ username })
+      .select("following followers")
+      .populate<{
+        following: PopulatedFollower[];
+      }>("following", "username avatar bio");
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    const followerSet = new Set(user.followers.map((id) => id.toString()));
+
+    const following = user.following.map((followedUser) => ({
+      ...followedUser,
+      isFollowingBack: followerSet.has(followedUser._id.toString()),
+    }));
+
+    return res.status(200).json({
+      success: true,
+      following,
+    });
+  },
+);
+
+export const userFollowing = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user?._id;
+
+    if (!mongoose.isValidObjectId(userId)) {
+      throw new AppError("Invalid id", 400);
+    }
+
+    const user = await User.findById(userId)
+      .select("following followers")
+      .populate<{
+        following: PopulatedFollower[];
+      }>("following", "username avatar bio");
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    const followerSet = new Set(user.followers.map((id) => id.toString()));
+
+    const following = user.following.map((followedUser) => ({
+      ...followedUser,
+      isFollowingBack: followerSet.has(followedUser._id.toString()),
+    }));
+
+    return res.status(200).json({
+      success: true,
+      following,
+    });
+  },
+);
+
+export const suspendUser = asyncHandler(async (req: Request, res: Response) => {
+  const { userId } = req.params as { userId: string };
+  const { days } = req.body as { days: number };
+  const adminId = req.user?._id;
+
+  if (!mongoose.isValidObjectId(userId)) {
+    throw new AppError("Invalid user id", 400);
+  }
+
+  if (!Number.isInteger(days) || days < 1 || days > 7) {
+    throw new AppError("Suspension duration must be between 1 and 7 days", 400);
+  }
+
+  if (!adminId) {
+    throw new AppError("Unauthorized", 401);
+  }
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  const suspendedUntil = new Date();
+  suspendedUntil.setDate(suspendedUntil.getDate() + days);
+
+  user.suspendedUntil = suspendedUntil;
+
+  await user.save();
+
+  await createNotification({
+    recipient: user._id,
+    sender: req.user!._id,
+    type: "announcement",
+    announcementType: "suspension",
+    title: "Account suspended",
+    message: `Your account has been suspended for ${days} day${days === 1 ? "" : "s"}.`,
+    suspendedUntil,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: `User suspended for ${days} day${days === 1 ? "" : "s"}`,
+    suspendedUntil: user.suspendedUntil,
+  });
+});

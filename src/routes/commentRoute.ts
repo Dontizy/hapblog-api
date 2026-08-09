@@ -12,6 +12,7 @@ import {
   isCommentAuthor,
   isReplyAuthorOrAdmin,
   isReplyAuthor,
+  checkSuspension,
 } from "../middleware/authorizedUser.js";
 import {
   createReply,
@@ -78,7 +79,7 @@ router.get("/post/:id/comments", optionalUser, fetchComments);
  *       404:
  *         description: Blog not found
  */
-router.post("/post/:id/comment", protect, createComment);
+router.post("/post/:id/comment", protect, checkSuspension, createComment);
 
 /**
  * @swagger
@@ -122,6 +123,7 @@ router.patch(
   "/:id/comment/:commentId",
   protect,
   isCommentAuthor,
+  checkSuspension,
   updateComment,
 );
 
@@ -161,6 +163,7 @@ router.delete(
   "/:id/comment/:commentId",
   protect,
   isCommentAuthorOrAdmin,
+  checkSuspension,
   deleteComment,
 );
 
@@ -194,7 +197,12 @@ router.delete(
  *       404:
  *         description: Blog post comment not found
  */
-router.patch("/:id/comment/:commentId/like", protect, toggleLikeComment);
+router.patch(
+  "/:id/comment/:commentId/like",
+  protect,
+  checkSuspension,
+  toggleLikeComment,
+);
 
 /**
  * @swagger
@@ -227,7 +235,7 @@ router.patch("/:id/comment/:commentId/like", protect, toggleLikeComment);
  *       404:
  *         description: Comment not found
  */
-router.post("/comment/:commentId/reply", protect, createReply);
+router.post("/comment/:commentId/reply", protect, checkSuspension, createReply);
 
 /**
  * @swagger
@@ -262,6 +270,7 @@ router.patch(
   "/comment/:id/reply/:replyId",
   protect,
   isReplyAuthor,
+  checkSuspension,
   updateReply,
 );
 
@@ -294,7 +303,8 @@ router.delete(
   "/comment/:id/reply/:replyId",
   protect,
   isReplyAuthorOrAdmin,
-  deleteReply,
+  checkSuspension,
+  deleteReply
 );
 
 /**
@@ -322,7 +332,7 @@ router.delete(
  *       404:
  *         description: Reply not found
  */
-router.patch("/comment/:id/reply/:replyId/like", protect, toggleReplyLike);
+router.patch("/comment/:id/reply/:replyId/like", protect, checkSuspension, toggleReplyLike);
 
 /**
  * @swagger

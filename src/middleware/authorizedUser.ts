@@ -115,3 +115,24 @@ export const isReplyAuthorOrAdmin = asyncHandler(async(req:Request, res:Response
   next()
 })
 
+export const checkSuspension = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user;
+
+    if (!user) {
+      throw new AppError("Not authorized", 401);
+    }
+
+    if (
+      user.suspendedUntil &&
+      user.suspendedUntil > new Date()
+    ) {
+      throw new AppError(
+        "Your account is suspended until your suspension expires",
+        403,
+      );
+    }
+
+    next();
+  },
+);

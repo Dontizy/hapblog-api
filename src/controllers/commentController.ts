@@ -75,7 +75,7 @@ export const fetchComments = asyncHandler(async (req: Request, res: Response) =>
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 })
-      .populate("author", "name avatar")
+      .populate("author", "username name avatar")
       .populate("repliesCount"),
 
     Comment.countDocuments({ blog: id }),
@@ -197,8 +197,8 @@ if (!hasLiked) {
  return res.status(200).json({
    success:true,
    message: hasLiked
-  ? "Comment unliked successfully"
-  : "Comment liked successfully"
+  ? "Comment unliked"
+  : "Comment liked"
  })
 })
 

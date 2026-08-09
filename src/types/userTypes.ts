@@ -1,5 +1,6 @@
 
 export type registerType = {
+    username:string,
     name:string;
     email:string;
     role:"user" | "admin";
@@ -7,6 +8,7 @@ export type registerType = {
 }
 
 export type loginType = {
-    email:string;
+    identifier: string;
     password:string
 }
+

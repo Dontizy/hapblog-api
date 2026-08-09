@@ -22,7 +22,7 @@ export const getBookmarks =
         path: "bookmarks",
         populate: {
           path: "author",
-          select: "name email",
+          select: "username name avatar",
         },
       });
 
@@ -32,7 +32,7 @@ export const getBookmarks =
       });
     }
   );
-  
+
 export const toggleBookmark =
   asyncHandler(
     async (

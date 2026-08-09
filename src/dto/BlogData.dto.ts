@@ -6,5 +6,6 @@ export interface CreateBlogDTO{
     content:string;
     category:BlogCategory;
     author:Types.ObjectId;
+    status?: "draft" | "published"
     imageUrl?:string
 }
