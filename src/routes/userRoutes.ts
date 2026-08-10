@@ -628,7 +628,7 @@ router.get("/auth/:username", protect, getUserProfile);
 
 /**
  * @openapi
- * /users/{username}/followers:
+ * /user/auth/{username}/followers:
  *   get:
  *     summary: Get public user's followers by username
  *     tags:
@@ -679,7 +679,7 @@ router.get("/auth/:username", protect, getUserProfile);
  *       404:
  *         description: Target user or logged-in user not found
  */
-router.get("/auth/:userId/followers", protect, publicUserFollowers);
+router.get("/auth/:username/followers", protect, publicUserFollowers);
 
 /**
  * @openapi
