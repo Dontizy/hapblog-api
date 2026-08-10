@@ -444,80 +444,70 @@ export const resetPassword = asyncHandler(
   },
 );
 
+export const followUser = asyncHandler(async (req: Request, res: Response) => {
+  const id = req.user?._id;
+  const { userId } = req.params as { userId: string };
 
-export const followUser = asyncHandler(
-  async (req: Request, res: Response) => {
-    const id = req.user?._id;
-    const { userId } = req.params as { userId: string };
+  if (!id) {
+    throw new AppError("Not authorized", 401);
+  }
 
-    if (!id) {
-      throw new AppError("Not authorized", 401);
-    }
+  if (!mongoose.isValidObjectId(userId)) {
+    throw new AppError("Invalid user ID", 400);
+  }
 
-    if (!mongoose.isValidObjectId(userId)) {
-      throw new AppError("Invalid user ID", 400);
-    }
+  if (id.toString() === userId) {
+    throw new AppError("You cannot follow yourself", 400);
+  }
 
-    if (id.toString() === userId) {
-      throw new AppError("You cannot follow yourself", 400);
-    }
+  const userToFollow = await User.findById(userId);
+  const currentUser = await User.findById(id);
 
-    const userToFollow = await User.findById(userId);
-    const currentUser = await User.findById(id);
+  if (!userToFollow || !currentUser) {
+    throw new AppError("User not found", 404);
+  }
 
-    if (!userToFollow || !currentUser) {
-      throw new AppError("User not found", 404);
-    }
+  const isFollowing = currentUser.following.some(
+    (id) => id.toString() === userToFollow._id.toString(),
+  );
 
-    const isFollowing = currentUser.following.some(
-      (id) => id.toString() === userToFollow._id.toString(),
+  if (isFollowing) {
+    // Unfollow
+    currentUser.following = currentUser.following.filter(
+      (id) => id.toString() !== userToFollow._id.toString(),
     );
 
-    if (isFollowing) {
-      // Unfollow
-      currentUser.following = currentUser.following.filter(
-        (id) => id.toString() !== userToFollow._id.toString(),
-      );
+    userToFollow.followers = userToFollow.followers.filter(
+      (id) => id.toString() !== currentUser._id.toString(),
+    );
 
-      userToFollow.followers = userToFollow.followers.filter(
-        (id) => id.toString() !== currentUser._id.toString(),
-      );
-
-      await Promise.all([
-        currentUser.save(),
-        userToFollow.save(),
-      ]);
-
-      return res.status(200).json({
-        success: true,
-        isFollowing: false,
-        message: `You have unfollowed ${userToFollow.username}`,
-      });
-    }
-
-    // Follow
-    currentUser.following.push(userToFollow._id);
-    userToFollow.followers.push(currentUser._id);
-
-    await Promise.all([
-      currentUser.save(),
-      userToFollow.save(),
-    ]);
-
-    await createNotification({
-      recipient: userToFollow._id,
-      sender: currentUser._id,
-      type: "follow",
-    });
+    await Promise.all([currentUser.save(), userToFollow.save()]);
 
     return res.status(200).json({
       success: true,
-      isFollowing: true,
-      message: `You are now following ${userToFollow.username}`,
+      isFollowing: false,
+      message: `You have unfollowed ${userToFollow.username}`,
     });
-  },
-);
+  }
 
+  // Follow
+  currentUser.following.push(userToFollow._id);
+  userToFollow.followers.push(currentUser._id);
+
+  await Promise.all([currentUser.save(), userToFollow.save()]);
+
+  await createNotification({
+    recipient: userToFollow._id,
+    sender: currentUser._id,
+    type: "follow",
+  });
+
+  return res.status(200).json({
+    success: true,
+    isFollowing: true,
+    message: `You are now following ${userToFollow.username}`,
+  });
+});
 
 export const getUserProfile = asyncHandler(
   async (req: Request, res: Response) => {
@@ -571,18 +561,29 @@ export const userFollowers = asyncHandler(
       .select("followers following")
       .populate<{
         followers: PopulatedFollower[];
-      }>("followers", "username avatar bio");
+      }>("followers", "username name avatar bio")
+      .lean();
+
     if (!user) {
       throw new AppError("User not found", 404);
     }
-    const followingSet = new Set(user.following.map((id) => id.toString()));
+
+    const followingSet = new Set(
+      user.following.map((id) => id.toString()),
+    );
 
     const followers = user.followers.map((follower) => ({
-      ...follower,
-      isFollowing: followingSet.has(follower._id.toString()),
+      _id: follower._id,
+      username: follower.username,
+      name: follower.name,
+      avatar: follower.avatar,
+      bio: follower.bio,
+      isFollowing: followingSet.has(
+        follower._id.toString(),
+      ),
     }));
 
-    return res.json({
+    return res.status(200).json({
       success: true,
       followers,
     });
@@ -591,17 +592,26 @@ export const userFollowers = asyncHandler(
 
 export const publicUserFollowers = asyncHandler(
   async (req: Request, res: Response) => {
-    const { username } = req.params as { username: string };
+    const { username } = req.params as {username:string};
 
-    const user = await User.findOne({ username }).select("followers").populate<{
-      followers: PopulatedFollower[];
-    }>("followers", "username avatar bio");
+    if (!username) {
+      throw new AppError("Username is required", 400);
+    }
+
+    const normalizedUsername = username.toLowerCase();
+
+    const user = await User.findOne({ username:normalizedUsername })
+      .select("followers")
+      .populate<{
+        followers: PopulatedFollower[];
+      }>("followers", "username name avatar bio")
+      .lean();
 
     if (!user) {
       throw new AppError("User not found", 404);
     }
 
-    const me = await User.findById(req.user?._id).select("following");
+    const me = await User.findById(req.user?._id).select("following").lean();
 
     if (!me) {
       throw new AppError("Logged-in user not found", 404);
@@ -610,7 +620,11 @@ export const publicUserFollowers = asyncHandler(
     const followingSet = new Set(me.following.map((id) => id.toString()));
 
     const followers = user.followers.map((follower) => ({
-      ...follower,
+      _id: follower._id,
+      username: follower.username,
+      name: follower.name,
+      avatar: follower.avatar,
+      bio: follower.bio,
       isFollowing: followingSet.has(follower._id.toString()),
     }));
 
@@ -629,7 +643,8 @@ export const publicUserFollowing = asyncHandler(
       .select("following followers")
       .populate<{
         following: PopulatedFollower[];
-      }>("following", "username avatar bio");
+      }>("following", "username name avatar bio")
+      .lean();
 
     if (!user) {
       throw new AppError("User not found", 404);
@@ -638,7 +653,11 @@ export const publicUserFollowing = asyncHandler(
     const followerSet = new Set(user.followers.map((id) => id.toString()));
 
     const following = user.following.map((followedUser) => ({
-      ...followedUser,
+      _id: followedUser._id,
+      username: followedUser.username,
+      name: followedUser.name,
+      avatar: followedUser.avatar,
+      bio: followedUser.bio,
       isFollowingBack: followerSet.has(followedUser._id.toString()),
     }));
 
@@ -661,17 +680,26 @@ export const userFollowing = asyncHandler(
       .select("following followers")
       .populate<{
         following: PopulatedFollower[];
-      }>("following", "username avatar bio");
+      }>("following", "username name avatar bio")
+      .lean();
 
     if (!user) {
       throw new AppError("User not found", 404);
     }
 
-    const followerSet = new Set(user.followers.map((id) => id.toString()));
+    const followerSet = new Set(
+      user.followers.map((id) => id.toString()),
+    );
 
     const following = user.following.map((followedUser) => ({
-      ...followedUser,
-      isFollowingBack: followerSet.has(followedUser._id.toString()),
+      _id: followedUser._id,
+      username: followedUser.username,
+      name: followedUser.name,
+      avatar: followedUser.avatar,
+      bio: followedUser.bio,
+      isFollowingBack: followerSet.has(
+        followedUser._id.toString(),
+      ),
     }));
 
     return res.status(200).json({
@@ -726,5 +754,3 @@ export const suspendUser = asyncHandler(async (req: Request, res: Response) => {
     suspendedUntil: user.suspendedUntil,
   });
 });
-
-

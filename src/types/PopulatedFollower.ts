@@ -3,7 +3,9 @@ import { IUser } from "../models/User.js";
 
 export type PopulatedFollower = Pick<
   IUser,
-  "name" | "avatar" | "bio"
+  "name" | "avatar" | "bio" | "username" 
 > & {
   _id: Types.ObjectId;
 };
+
+
