@@ -444,60 +444,80 @@ export const resetPassword = asyncHandler(
   },
 );
 
-export const followUser = asyncHandler(async (req: Request, res: Response) => {
-  const id = req.user?._id;
-  const { userId } = req.params as { userId: string };
-  if (!id) {
-    throw new AppError("Not authorized", 401);
-  }
-  if (!mongoose.isValidObjectId(userId)) {
-    throw new AppError("Invalid user ID", 400);
-  }
-  if (id.toString() === userId) {
-    throw new AppError("You cannot follow yourself", 400);
-  }
-  const userToFollow = await User.findById(userId);
-  const currentUser = await User.findById(id);
-  if (!userToFollow || !currentUser) {
-    throw new AppError("User not found", 404);
-  }
-  const isFollowing = currentUser.following.some(
-    (id) => id.toString() === userToFollow._id.toString(),
-  );
 
-  if (isFollowing) {
-    // unfollow
-    currentUser.following = currentUser.following.filter(
-      (id) => id.toString() !== userToFollow._id.toString(),
+export const followUser = asyncHandler(
+  async (req: Request, res: Response) => {
+    const id = req.user?._id;
+    const { userId } = req.params as { userId: string };
+
+    if (!id) {
+      throw new AppError("Not authorized", 401);
+    }
+
+    if (!mongoose.isValidObjectId(userId)) {
+      throw new AppError("Invalid user ID", 400);
+    }
+
+    if (id.toString() === userId) {
+      throw new AppError("You cannot follow yourself", 400);
+    }
+
+    const userToFollow = await User.findById(userId);
+    const currentUser = await User.findById(id);
+
+    if (!userToFollow || !currentUser) {
+      throw new AppError("User not found", 404);
+    }
+
+    const isFollowing = currentUser.following.some(
+      (id) => id.toString() === userToFollow._id.toString(),
     );
-    userToFollow.followers = userToFollow.followers.filter(
-      (id) => id.toString() !== currentUser._id.toString(),
-    );
-    await currentUser.save();
-    await userToFollow.save();
-    return res.status(200).json({
-      success: true,
-      message: `You have unfollowed ${userToFollow.username}`,
-    });
-  } else {
-    // follow
-    currentUser.following?.push(userToFollow._id);
-    userToFollow.followers?.push(currentUser._id);
-    await currentUser.save();
-    await userToFollow.save();
+
+    if (isFollowing) {
+      // Unfollow
+      currentUser.following = currentUser.following.filter(
+        (id) => id.toString() !== userToFollow._id.toString(),
+      );
+
+      userToFollow.followers = userToFollow.followers.filter(
+        (id) => id.toString() !== currentUser._id.toString(),
+      );
+
+      await Promise.all([
+        currentUser.save(),
+        userToFollow.save(),
+      ]);
+
+      return res.status(200).json({
+        success: true,
+        isFollowing: false,
+        message: `You have unfollowed ${userToFollow.username}`,
+      });
+    }
+
+    // Follow
+    currentUser.following.push(userToFollow._id);
+    userToFollow.followers.push(currentUser._id);
+
+    await Promise.all([
+      currentUser.save(),
+      userToFollow.save(),
+    ]);
 
     await createNotification({
       recipient: userToFollow._id,
       sender: currentUser._id,
       type: "follow",
     });
+
     return res.status(200).json({
-      isFollowing: true,
       success: true,
+      isFollowing: true,
       message: `You are now following ${userToFollow.username}`,
     });
-  }
-});
+  },
+);
+
 
 export const getUserProfile = asyncHandler(
   async (req: Request, res: Response) => {
@@ -706,3 +726,5 @@ export const suspendUser = asyncHandler(async (req: Request, res: Response) => {
     suspendedUntil: user.suspendedUntil,
   });
 });
+
+

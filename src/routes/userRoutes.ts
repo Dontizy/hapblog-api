@@ -53,7 +53,7 @@ const router = Router();
  *               - password
  *             properties:
  *               username:
- *                 type:string
+ *                 type: string
  *               email:
  *                 type: string
  *               name:
@@ -464,6 +464,104 @@ router.patch("/auth/bio/update", protect, updateBio);
 
 /**
  * @openapi
+ * /user/auth/followers:
+ *   get:
+ *     summary: Get authenticated user's followers
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Followers list retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 followers:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: "65f1a2b3c4d5e6f7a8b9c0d1"
+ *                       username:
+ *                         type: string
+ *                         example: "mikel"
+ *                       avatar:
+ *                         type: string
+ *                         example: "https://example.com/avatar.jpg"
+ *                       bio:
+ *                         type: string
+ *                         example: "Full stack developer"
+ *                       isFollowing:
+ *                         type: boolean
+ *                         example: true
+ *       400:
+ *         description: Invalid user ID format
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
+router.get("/auth/followers", protect, userFollowers);
+
+/**
+ * @openapi
+ * /user/auth/following:
+ *   get:
+ *     summary: Get authenticated user's following list
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Following list retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 following:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: "65f1a2b3c4d5e6f7a8b9c0d1"
+ *                       username:
+ *                         type: string
+ *                         example: "johndoe"
+ *                       avatar:
+ *                         type: string
+ *                         example: "https://example.com/avatar.jpg"
+ *                       bio:
+ *                         type: string
+ *                         example: "Full stack developer"
+ *                       isFollowingBack:
+ *                         type: boolean
+ *                         example: true
+ *       400:
+ *         description: Invalid user ID format
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
+router.get("/auth/following", protect, userFollowing);
+
+/**
+ * @openapi
  * /user/auth/{username}:
  *   get:
  *     summary: Get user profile by username
@@ -530,55 +628,6 @@ router.get("/auth/:username", protect, getUserProfile);
 
 /**
  * @openapi
- * /user/auth/followers:
- *   get:
- *     summary: Get authenticated user's followers
- *     tags:
- *       - Users
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Followers list retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 followers:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       _id:
- *                         type: string
- *                         example: "65f1a2b3c4d5e6f7a8b9c0d1"
- *                       username:
- *                         type: string
- *                         example: "mikel"
- *                       avatar:
- *                         type: string
- *                         example: "https://example.com/avatar.jpg"
- *                       bio:
- *                         type: string
- *                         example: "Full stack developer"
- *                       isFollowing:
- *                         type: boolean
- *                         example: true
- *       400:
- *         description: Invalid user ID format
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: User not found
- */
-router.get("/auth/followers", protect, userFollowers);
-
-/**
- * @openapi
  * /users/{username}/followers:
  *   get:
  *     summary: Get public user's followers by username
@@ -634,56 +683,6 @@ router.get("/auth/:userId/followers", protect, publicUserFollowers);
 
 /**
  * @openapi
- * /user/auth/following:
- *   get:
- *     summary: Get authenticated user's following list
- *     tags:
- *       - Users
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Following list retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 following:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       _id:
- *                         type: string
- *                         example: "65f1a2b3c4d5e6f7a8b9c0d1"
- *                       username:
- *                         type: string
- *                         example: "johndoe"
- *                       avatar:
- *                         type: string
- *                         example: "https://example.com/avatar.jpg"
- *                       bio:
- *                         type: string
- *                         example: "Full stack developer"
- *                       isFollowingBack:
- *                         type: boolean
- *                         example: true
- *       400:
- *         description: Invalid user ID format
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: User not found
- */
-router.get("/auth/following", protect, userFollowing);
-
-
-/**
- * @openapi
  * /user/auth/{username}/following:
  *   get:
  *     summary: Get public user's following list by username
@@ -732,6 +731,33 @@ router.get("/auth/following", protect, userFollowing);
  *         description: User not found
  */
 router.get("/auth/:username/following", protect, publicUserFollowing);
+
+/**
+ * @openapi
+ * /user/auth/{userId}/follow:
+ *   patch:
+ *     summary: Follow or unfollow a user
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Follow status toggled successfully
+ *       400:
+ *         description: Invalid user ID
+ *       401:
+ *         description: Not authorized
+ *       404:
+ *         description: User not found
+ */
+router.patch("/auth/:userId/follow", protect, followUser);
 
 /**
  * @openapi
@@ -789,64 +815,4 @@ router.post(
   broadcastNotification,
 );
 
-/**
- * @openapi
- * /user/auth/{userId}/suspend:
- *   patch:
- *     summary: Suspend a user
- *     tags:
- *       - Users
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: string
- *         example: "65f1a2b3c4d5e6f7a8b9c0d1"
- *         description: ID of the user to suspend
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - days
- *             properties:
- *               days:
- *                 type: integer
- *                 minimum: 1
- *                 maximum: 7
- *                 example: 3
- *                 description: Number of days to suspend the user (1-7)
- *     responses:
- *       200:
- *         description: User suspended successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "User suspended for 3 days"
- *                 suspendedUntil:
- *                   type: string
- *                   format: date-time
- *                   example: "2026-08-11T21:06:17.000Z"
- *       400:
- *         description: Invalid user ID format or suspension days out of range (must be 1-7)
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden (Admin access required)
- *       404:
- *         description: User not found
- */
-router.patch("/auth/:userId/suspend", protect, isAdmin, suspendUser);
 export default router;
