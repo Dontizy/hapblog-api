@@ -239,7 +239,7 @@ router.post("/comment/:commentId/reply", protect, checkSuspension, createReply);
 
 /**
  * @openapi
- * /blog/comment/:id/reply/:replyId:
+ * /blog/comment/{id}/reply/{replyId}
  *   patch:
  *     summary: Update an existing reply
  *     description: Updates the body content of a specific reply under a comment.
