@@ -94,35 +94,42 @@ export const fetchReplies = asyncHandler(
   },
 );
 
+
 export const updateReply = asyncHandler(async (req: Request, res: Response) => {
   const { id, replyId } = req.params as { id: string; replyId: string };
   const { body } = req.body as { body: string };
+
   if (!mongoose.isValidObjectId(id) || !mongoose.isValidObjectId(replyId)) {
     throw new AppError("Invalid comment or reply id", 400);
   }
+
   if (!body?.trim()) {
     throw new AppError("Reply body is required", 400);
   }
 
-  const comment = await Comment.exists({ _id: id });
-
-  if (!comment) {
-    throw new AppError("Comment not found", 404);
-  }
-
-  const reply = await Reply.findOne({ _id: replyId, comment: id });
+  // Atomically find and update the reply directly
+  const reply = await Reply.findOneAndUpdate(
+    { _id: replyId, comment: id },
+    { body: body.trim() },
+    { new: true, runValidators: true }
+  );
 
   if (!reply) {
+    // If reply isn't found, check if comment exists for a specific error message
+    const commentExists = await Comment.exists({ _id: id });
+    if (!commentExists) {
+      throw new AppError("Comment not found", 404);
+    }
     throw new AppError("Reply not found", 404);
   }
-  reply.body = body.trim();
-  await reply.save();
+
   return res.status(200).json({
     success: true,
     message: "Reply updated",
     reply,
   });
 });
+
 
 export const deleteReply = asyncHandler(async (req: Request, res: Response) => {
   const { id, replyId } = req.params as {

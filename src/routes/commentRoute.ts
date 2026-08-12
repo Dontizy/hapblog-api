@@ -238,11 +238,13 @@ router.patch(
 router.post("/comment/:commentId/reply", protect, checkSuspension, createReply);
 
 /**
- * @swagger
- * /blog/comment/{id}/reply/{replyId}:
+ * @openapi
+ * /blog/comment/:id/reply/:replyId:
  *   patch:
- *     summary: Update a reply
- *     tags: [Replies]
+ *     summary: Update an existing reply
+ *     description: Updates the body content of a specific reply under a comment.
+ *     tags:
+ *       - Replies
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -251,20 +253,103 @@ router.post("/comment/:commentId/reply", protect, checkSuspension, createReply);
  *         required: true
  *         schema:
  *           type: string
+ *         description: The MongoDB ObjectId of the parent comment
+ *         example: 650c1f1e2f3a4b5c6d7e8f90
  *       - in: path
  *         name: replyId
  *         required: true
  *         schema:
  *           type: string
+ *         description: The MongoDB ObjectId of the reply to update
+ *         example: 650c1f1e2f3a4b5c6d7e8f99
  *     requestBody:
  *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - body
+ *             properties:
+ *               body:
+ *                 type: string
+ *                 description: The updated text content of the reply
+ *                 example: "This is an updated reply message."
  *     responses:
  *       200:
  *         description: Reply updated successfully
- *       404:
- *         description: Comment or reply not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Reply updated"
+ *                 reply:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       example: 650c1f1e2f3a4b5c6d7e8f99
+ *                     comment:
+ *                       type: string
+ *                       example: 650c1f1e2f3a4b5c6d7e8f90
+ *                     author:
+ *                       type: string
+ *                       example: 650c1f1e2f3a4b5c6d7e8f11
+ *                     body:
+ *                       type: string
+ *                       example: "This is an updated reply message."
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
  *       400:
- *         description: Invalid ID
+ *         description: Bad Request — Invalid ObjectIDs or empty reply body
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   examples:
+ *                     invalidId:
+ *                       value: "Invalid comment or reply id"
+ *                     missingBody:
+ *                       value: "Reply body is required"
+ *       401:
+ *         description: Unauthorized — Missing or invalid authentication token
+ *       403:
+ *         description: Forbidden — User is not the author or an admin
+ *       404:
+ *         description: Not Found — Comment or reply does not exist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   examples:
+ *                     commentNotFound:
+ *                       value: "Comment not found"
+ *                     replyNotFound:
+ *                       value: "Reply not found"
+ *       500:
+ *         description: Internal Server Error
  */
 router.patch(
   "/comment/:id/reply/:replyId",
@@ -304,7 +389,7 @@ router.delete(
   protect,
   isReplyAuthorOrAdmin,
   checkSuspension,
-  deleteReply
+  deleteReply,
 );
 
 /**
@@ -332,7 +417,12 @@ router.delete(
  *       404:
  *         description: Reply not found
  */
-router.patch("/comment/:id/reply/:replyId/like", protect, checkSuspension, toggleReplyLike);
+router.patch(
+  "/comment/:id/reply/:replyId/like",
+  protect,
+  checkSuspension,
+  toggleReplyLike,
+);
 
 /**
  * @swagger
