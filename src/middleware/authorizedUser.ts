@@ -76,23 +76,38 @@ export const isCommentAuthorOrAdmin = asyncHandler(async(req:Request, res:Respon
 })
 
 
-export const isReplyAuthor=asyncHandler(async(req:Request, res:Response, next:NextFunction)=>{
-  const { replyId } =req.params as {
-    replyId:string
-  }
-  const userId = req.user?._id
-  if(!mongoose.isValidObjectId(replyId)){
-    throw new AppError("Invalid reply ID", 400)
-  }
-  const reply = await Comment.findById(replyId)
-  if(!reply){
-    throw new AppError("Reply not found", 404)
-  }
-  if(reply.author.toString() !== userId?.toString()){
-    throw new AppError("Permission denied, you are not the author of this reply", 403)
-  }
-  next()
-})
+export const isReplyAuthor = asyncHandler(
+  async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const { replyId } = req.params as {
+      replyId: string;
+    };
+
+    const userId = req.user?._id;
+
+    if (!mongoose.isValidObjectId(replyId)) {
+      throw new AppError("Invalid reply ID", 400);
+    }
+
+    const reply = await Reply.findById(replyId);
+
+    if (!reply) {
+      throw new AppError("Reply not found", 404);
+    }
+
+    if (reply.author.toString() !== userId?.toString()) {
+      throw new AppError(
+        "Permission denied, you are not the author of this reply",
+        403,
+      );
+    }
+
+    next();
+  },
+);
 
 export const isReplyAuthorOrAdmin = asyncHandler(async(req:Request, res:Response, next:NextFunction)=>{
   const {replyId}=req.params as {
