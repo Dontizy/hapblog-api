@@ -113,7 +113,7 @@ router.post("/login", login);
  *     summary: Admin delete a user
  *     description: An admin delete a user and all blogs associated with the user
  *     tags:
- *       - Users
+ *       - Admin
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -144,6 +144,8 @@ router.delete("/auth/delete/:id", protect, isAdmin, deleteUser);
  *     summary: Get paginated users list with search filter
  *     tags:
  *       - Admin
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: search
@@ -177,6 +179,20 @@ router.delete("/auth/delete/:id", protect, isAdmin, deleteUser);
  *                   type: array
  *                   items:
  *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: "65b21d4f8e3f2a1a0c8b4567"
+ *                       username:
+ *                         type: string
+ *                         example: "john_doe"
+ *                       email:
+ *                         type: string
+ *                         example: "john@example.com"
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2026-03-15T10:30:00.000Z"
  *                 currentPage:
  *                   type: integer
  *                   example: 1
@@ -189,6 +205,12 @@ router.delete("/auth/delete/:id", protect, isAdmin, deleteUser);
  *                 limit:
  *                   type: integer
  *                   example: 10
+ *       401:
+ *         description: Unauthorized - Missing or invalid token
+ *       403:
+ *         description: Forbidden - Admin access required
+ *       500:
+ *         description: Internal Server Error
  */
 router.get("/admin/users", protect, isAdmin, allUsers);
 
