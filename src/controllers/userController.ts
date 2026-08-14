@@ -134,6 +134,7 @@ export const login = asyncHandler(
         role: user.role,
         bio: user.bio,
         avatar: user.avatar,
+        suspendedUntil:user.suspendedUntil
       },
       token,
     });
@@ -286,28 +287,33 @@ export const changePassword = asyncHandler(
 export const addOrRemoveAdmin = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
+
     if (!mongoose.isValidObjectId(id)) {
       throw new AppError("Invalid user ID", 400);
     }
+
     const user = await User.findById(id);
 
     if (!user) {
       throw new AppError("User not found", 404);
     }
+
     if (req.user?._id.toString() === id) {
       throw new AppError("You cannot change your own role", 403);
     }
-    if (user.role === "user") {
-      user.role = "admin";
-    } else {
-      user.role = "user";
-    }
+
+    const isMakingAdmin = user.role === "user";
+
+    user.role = isMakingAdmin ? "admin" : "user";
+
     await user.save();
-    return res.status(200).json({
-      success: true,
-      user,
-      role: user.role,
-    });
+
+   return res.status(200).json({
+  success: true,
+  message: isMakingAdmin
+    ? `${user.name} is now an admin`
+    : `${user.name} is no longer an admin`,
+});
   },
 );
 
@@ -353,6 +359,7 @@ export const myProfile = asyncHandler(async (req: Request, res: Response) => {
     following: user.following,
     bookmarks: user.bookmarks,
     blogsCount: blog,
+    suspendedUntil:user.suspendedUntil,
     bookmarksCount: user.bookmarks?.length || 0,
     followersCount: user.followers?.length || 0,
     followingCount: user.following?.length || 0,
@@ -389,6 +396,7 @@ export const avatarUpdate = asyncHandler(
     });
   },
 );
+
 export const forgotPassword = asyncHandler(
   async (req: Request, res: Response) => {
     const { identifier } = req.body as { identifier: string };
@@ -433,25 +441,247 @@ export const forgotPassword = asyncHandler(
       to: user.email,
       subject: "Reset Password",
       html: `
-        <h2>Password Reset</h2>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reset your Hapblog password</title>
+  </head>
 
-        <p>
-          We received a request to reset your Hapblog password.
-        </p>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #f6f6f6;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #18181b;
+    "
+  >
+    <table
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      role="presentation"
+      style="background-color: #f6f6f6; padding: 40px 16px;"
+    >
+      <tr>
+        <td align="center">
 
-        <p>
-          Click the link below to reset your password.
-          This link expires in 10 minutes.
-        </p>
+          <table
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            role="presentation"
+            style="
+              max-width: 560px;
+              background-color: #ffffff;
+              border: 1px solid #e4e4e7;
+              border-radius: 16px;
+              overflow: hidden;
+            "
+          >
 
-        <a href="${resetUrl}">
-          Reset Password
-        </a>
+            <!-- Header -->
+            <tr>
+              <td
+                style="
+                  padding: 28px 32px;
+                  border-bottom: 1px solid #f0f0f0;
+                "
+              >
+                <h1
+                  style="
+                    margin: 0;
+                    font-size: 24px;
+                    font-weight: 700;
+                    letter-spacing: -0.5px;
+                    color: #18181b;
+                  "
+                >
+                  Hapblog
+                </h1>
+              </td>
+            </tr>
 
-        <p>
-          If you didn't request a password reset, you can safely ignore this email.
-        </p>
-      `,
+            <!-- Content -->
+            <tr>
+              <td style="padding: 40px 32px 32px;">
+
+                <h2
+                  style="
+                    margin: 0 0 16px;
+                    font-size: 26px;
+                    line-height: 1.3;
+                    font-weight: 700;
+                    color: #18181b;
+                  "
+                >
+                  Reset your password
+                </h2>
+
+                <p
+                  style="
+                    margin: 0 0 16px;
+                    font-size: 15px;
+                    line-height: 1.7;
+                    color: #52525b;
+                  "
+                >
+                  Hi ${user.name},
+                </p>
+
+                <p
+                  style="
+                    margin: 0 0 16px;
+                    font-size: 15px;
+                    line-height: 1.7;
+                    color: #52525b;
+                  "
+                >
+                  We received a request to reset the password
+                  associated with your Hapblog account.
+                </p>
+
+                <p
+                  style="
+                    margin: 0 0 28px;
+                    font-size: 15px;
+                    line-height: 1.7;
+                    color: #52525b;
+                  "
+                >
+                  Click the button below to choose a new password.
+                  This link will expire in
+                  <strong style="color: #18181b;">10 minutes</strong>.
+                </p>
+
+                <!-- Button -->
+                <table
+                  cellpadding="0"
+                  cellspacing="0"
+                  role="presentation"
+                  style="margin-bottom: 28px;"
+                >
+                  <tr>
+                    <td
+                      align="center"
+                      style="
+                        border-radius: 999px;
+                        background-color: #18181b;
+                      "
+                    >
+                      <a
+                        href="${resetUrl}"
+                        style="
+                          display: inline-block;
+                          padding: 13px 24px;
+                          border-radius: 999px;
+                          background-color: #18181b;
+                          color: #ffffff;
+                          font-size: 14px;
+                          font-weight: 600;
+                          text-decoration: none;
+                        "
+                      >
+                        Reset Password
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Fallback URL -->
+                <p
+                  style="
+                    margin: 0 0 8px;
+                    font-size: 12px;
+                    color: #71717a;
+                  "
+                >
+                  If the button doesn't work, copy and paste this link
+                  into your browser:
+                </p>
+
+                <p
+                  style="
+                    margin: 0 0 28px;
+                    padding: 12px;
+                    background-color: #fafafa;
+                    border: 1px solid #e4e4e7;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    line-height: 1.5;
+                    word-break: break-all;
+                  "
+                >
+                  <a
+                    href="${resetUrl}"
+                    style="
+                      color: #52525b;
+                      text-decoration: none;
+                    "
+                  >
+                    ${resetUrl}
+                  </a>
+                </p>
+
+                <!-- Security notice -->
+                <div
+                  style="
+                    padding: 16px;
+                    background-color: #fafafa;
+                    border-radius: 10px;
+                  "
+                >
+                  <p
+                    style="
+                      margin: 0;
+                      font-size: 13px;
+                      line-height: 1.6;
+                      color: #71717a;
+                    "
+                  >
+                    If you didn't request a password reset, you can
+                    safely ignore this email. Your password will remain
+                    unchanged.
+                  </p>
+                </div>
+
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                style="
+                  padding: 24px 32px;
+                  background-color: #fafafa;
+                  border-top: 1px solid #f0f0f0;
+                "
+              >
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 12px;
+                    line-height: 1.6;
+                    color: #a1a1aa;
+                    text-align: center;
+                  "
+                >
+                  This is an automated message from Hapblog.
+                  Please don't reply to this email.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+`,
     });
 
     return res.status(200).json({
@@ -485,9 +715,6 @@ export const resetPassword = asyncHandler(
       },
     }).select("+resetPasswordToken +resetPasswordExpire +password");
 
-    if (!user) {
-      throw new AppError("Invalid or expired token", 400);
-    }
 
     // Update password
     user.password = await hashPassword(password);
@@ -498,10 +725,10 @@ export const resetPassword = asyncHandler(
 
     await user.save();
 
-    return res.status(200).json({
-      success: true,
-      message: "Password reset successful",
-    });
+   return res.status(200).json({
+  success: true,
+  message: "If an account exists, a password reset link has been sent.",
+});
   },
 );
 
@@ -637,6 +864,7 @@ export const userFollowers = asyncHandler(
       name: follower.name,
       avatar: follower.avatar,
       bio: follower.bio,
+      suspendedUntil?: follower.suspendedUntil,
       isFollowing: followingSet.has(follower._id.toString()),
     }));
 
@@ -682,6 +910,7 @@ export const publicUserFollowers = asyncHandler(
       name: follower.name,
       avatar: follower.avatar,
       bio: follower.bio,
+     
       isFollowing: followingSet.has(follower._id.toString()),
     }));
 
