@@ -701,13 +701,17 @@ export const resetPassword = asyncHandler(
     }
 
     if (password.length < 5) {
-      throw new AppError("Password must be at least 5 characters", 400);
+      throw new AppError(
+        "Password must be at least 5 characters",
+        400,
+      );
     }
 
-    // Hash incoming token
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
 
-    // Find user with valid, non-expired token
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
       resetPasswordExpire: {
@@ -715,20 +719,25 @@ export const resetPassword = asyncHandler(
       },
     }).select("+resetPasswordToken +resetPasswordExpire +password");
 
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message:
+          "If an account exists, a password reset link has been sent.",
+      });
+    }
 
-    // Update password
     user.password = await hashPassword(password);
 
-    // Invalidate reset token
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
 
     await user.save();
 
-   return res.status(200).json({
-  success: true,
-  message: "If an account exists, a password reset link has been sent.",
-});
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successfully.",
+    });
   },
 );
 
@@ -864,7 +873,6 @@ export const userFollowers = asyncHandler(
       name: follower.name,
       avatar: follower.avatar,
       bio: follower.bio,
-      suspendedUntil?: follower.suspendedUntil,
       isFollowing: followingSet.has(follower._id.toString()),
     }));
 
@@ -910,7 +918,7 @@ export const publicUserFollowers = asyncHandler(
       name: follower.name,
       avatar: follower.avatar,
       bio: follower.bio,
-     
+
       isFollowing: followingSet.has(follower._id.toString()),
     }));
 
