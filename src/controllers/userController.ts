@@ -143,6 +143,11 @@ export const login = asyncHandler(
 export const allUsers = asyncHandler(async (req: Request, res: Response) => {
   const search = String(req.query.search || "").trim();
 
+  // Extract pagination parameters with safe fallbacks
+  const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+  const limit = Math.max(1, parseInt(String(req.query.limit || "10"), 10) || 10);
+  const skip = (page - 1) * limit;
+
   const query: Record<string, unknown> = {};
 
   if (search) {
@@ -198,11 +203,22 @@ export const allUsers = asyncHandler(async (req: Request, res: Response) => {
     query.$or = orConditions;
   }
 
-  const users = await User.find(query).sort({ createdAt: -1 });
+  // Fetch total count and paginated user list concurrently
+  const [totalUsers, users] = await Promise.all([
+    User.countDocuments(query),
+    User.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+  ]);
 
   res.status(200).json({
     success: true,
     users,
+    currentPage: page,
+    totalPages: Math.ceil(totalUsers / limit),
+    totalUsers,
+    limit,
   });
 });
 

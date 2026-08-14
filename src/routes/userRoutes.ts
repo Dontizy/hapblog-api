@@ -138,29 +138,32 @@ router.post("/login", login);
 router.delete("/auth/delete/:id", protect, isAdmin, deleteUser);
 
 /**
- * @openapi
- * /users:
+ * @swagger
+ * /user/admin/users:
  *   get:
- *     summary: Retrieve all users or search users
- *     description: >
- *       Retrieves a list of users sorted by creation date (newest first).
- *       Supports optional search filtering across username, email, registration year (e.g., "2026"),
- *       or registration month (1–12 for the current year).
- *     tags:
- *       - Users
- *     security:
- *       - bearerAuth: []
+ *     summary: Get paginated users list with search filter
+ *     tags: Users / Admin
  *     parameters:
  *       - in: query
  *         name: search
- *         required: false
  *         schema:
  *           type: string
- *         description: Term to search by username, email, year (YYYY), or month (1-12)
- *         example: "john"
+ *         description: Search by username, email, year (e.g. 2026), or month (1-12)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
  *     responses:
  *       200:
- *         description: List of users retrieved successfully
+ *         description: Successfully fetched users
  *         content:
  *           application/json:
  *             schema:
@@ -172,27 +175,19 @@ router.delete("/auth/delete/:id", protect, isAdmin, deleteUser);
  *                 users:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/User'
- *       401:
- *         description: Unauthorized — Authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *             example:
- *               success: false
- *               status: fail
- *               message: "Authentication required"
- *       403:
- *         description: Forbidden — Administrator access required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *             example:
- *               success: false
- *               status: fail
- *               message: "Forbidden: administrator access required"
+ *                     type: object
+ *                 currentPage:
+ *                   type: integer
+ *                   example: 1
+ *                 totalPages:
+ *                   type: integer
+ *                   example: 5
+ *                 totalUsers:
+ *                   type: integer
+ *                   example: 45
+ *                 limit:
+ *                   type: integer
+ *                   example: 10
  */
 router.get("/admin/users", protect, isAdmin, allUsers);
 
