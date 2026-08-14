@@ -3,7 +3,7 @@ import { Types } from "mongoose";
 
 interface CreateNotificationParams {
   recipient: string | Types.ObjectId;
-  sender: string | Types.ObjectId;
+  sender?: string | Types.ObjectId;
   type:
     | "blog_like"
     | "comment"
@@ -11,6 +11,7 @@ interface CreateNotificationParams {
     | "reply_like"
     | "comment_like"
     | "follow"
+    | "welcome"
     | "announcement";
   blog?: string;
   comment?: string;
@@ -32,9 +33,10 @@ export const createNotification = async ({
   suspendedUntil,
   announcementType,
 }: CreateNotificationParams) => {
-  if (recipient.toString() === sender.toString()) {
-    return;
-  }
+
+  if (sender && recipient.toString() === sender.toString()) {
+  return;
+}
 
   const query: Record<string, unknown> = {
     recipient,

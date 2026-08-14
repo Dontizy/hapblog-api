@@ -74,24 +74,3 @@ export const markNotificationAsRead =
       });
     }
 );
-
-export const openNotification = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { id } = req.params;
-
-    const notification = await Notification.findById(id);
-
-    if (!notification) {
-      throw new AppError("Notification not found", 404);
-    }
-
-    notification.isRead = true;
-    await notification.save();
-
-    res.status(200).json({
-      success: true,
-      blogId: notification.blog,
-    });
-  }
-);
-

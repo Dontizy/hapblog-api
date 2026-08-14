@@ -16,6 +16,8 @@ import { resend } from "../config/resend.js";
 import { createNotification } from "../utils/createNotification.js";
 import { PopulatedFollower } from "../types/PopulatedFollower.js";
 
+
+
 const hashPassword = async (plainPassword: string) => {
   const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(plainPassword, salt);
@@ -59,7 +61,12 @@ export const register = asyncHandler(
       email: normalizedEmail,
       password: await hashPassword(password),
     });
-
+    await createNotification({
+      recipient: user._id,
+      type: "welcome",
+      title: "Welcome to Hapblog! 🎉",
+      message: `Hey ${user.username}, welcome to Hapblog! We're excited to have you here. Start exploring stories, discover new authors, share your thoughts, and when you're ready, publish your own stories with the community. Happy blogging! ✍️❤️`,
+    });
     const secret = process.env.JWT_SECRET;
 
     if (!secret) {
@@ -139,7 +146,7 @@ export const allUsers = asyncHandler(async (req: Request, res: Response) => {
   const query: Record<string, unknown> = {};
 
   if (search) {
-    query.$or = [
+    const orConditions: Record<string, unknown>[] = [
       {
         username: {
           $regex: search,
@@ -153,9 +160,47 @@ export const allUsers = asyncHandler(async (req: Request, res: Response) => {
         },
       },
     ];
+
+    // Search by year: 2026
+    if (/^\d{4}$/.test(search)) {
+      const year = Number(search);
+
+      const start = new Date(year, 0, 1);
+      const end = new Date(year + 1, 0, 1);
+
+      orConditions.push({
+        createdAt: {
+          $gte: start,
+          $lt: end,
+        },
+      });
+    }
+
+    // Search by month: 01 - 12
+    if (/^\d{1,2}$/.test(search)) {
+      const month = Number(search);
+
+      if (month >= 1 && month <= 12) {
+        const currentYear = new Date().getFullYear();
+
+        const start = new Date(currentYear, month - 1, 1);
+        const end = new Date(currentYear, month, 1);
+
+        orConditions.push({
+          createdAt: {
+            $gte: start,
+            $lt: end,
+          },
+        });
+      }
+    }
+
+    query.$or = orConditions;
   }
+
   const users = await User.find(query).sort({ createdAt: -1 });
-  return res.status(200).json({
+
+  res.status(200).json({
     success: true,
     users,
   });
@@ -568,9 +613,7 @@ export const userFollowers = asyncHandler(
       throw new AppError("User not found", 404);
     }
 
-    const followingSet = new Set(
-      user.following.map((id) => id.toString()),
-    );
+    const followingSet = new Set(user.following.map((id) => id.toString()));
 
     const followers = user.followers.map((follower) => ({
       _id: follower._id,
@@ -578,9 +621,7 @@ export const userFollowers = asyncHandler(
       name: follower.name,
       avatar: follower.avatar,
       bio: follower.bio,
-      isFollowing: followingSet.has(
-        follower._id.toString(),
-      ),
+      isFollowing: followingSet.has(follower._id.toString()),
     }));
 
     return res.status(200).json({
@@ -592,7 +633,7 @@ export const userFollowers = asyncHandler(
 
 export const publicUserFollowers = asyncHandler(
   async (req: Request, res: Response) => {
-    const { username } = req.params as {username:string};
+    const { username } = req.params as { username: string };
 
     if (!username) {
       throw new AppError("Username is required", 400);
@@ -600,7 +641,7 @@ export const publicUserFollowers = asyncHandler(
 
     const normalizedUsername = username.toLowerCase();
 
-    const user = await User.findOne({ username:normalizedUsername })
+    const user = await User.findOne({ username: normalizedUsername })
       .select("followers")
       .populate<{
         followers: PopulatedFollower[];
@@ -687,9 +728,7 @@ export const userFollowing = asyncHandler(
       throw new AppError("User not found", 404);
     }
 
-    const followerSet = new Set(
-      user.followers.map((id) => id.toString()),
-    );
+    const followerSet = new Set(user.followers.map((id) => id.toString()));
 
     const following = user.following.map((followedUser) => ({
       _id: followedUser._id,
@@ -697,9 +736,7 @@ export const userFollowing = asyncHandler(
       name: followedUser.name,
       avatar: followedUser.avatar,
       bio: followedUser.bio,
-      isFollowingBack: followerSet.has(
-        followedUser._id.toString(),
-      ),
+      isFollowingBack: followerSet.has(followedUser._id.toString()),
     }));
 
     return res.status(200).json({
@@ -712,19 +749,21 @@ export const userFollowing = asyncHandler(
 export const suspendUser = asyncHandler(async (req: Request, res: Response) => {
   const { userId } = req.params as { userId: string };
   const { days } = req.body as { days: number };
-  const adminId = req.user?._id;
+
+  const admin = req.user;
+
+  if (!admin) {
+    throw new AppError("Authentication required", 401);
+  }
 
   if (!mongoose.isValidObjectId(userId)) {
-    throw new AppError("Invalid user id", 400);
+    throw new AppError("Invalid user ID", 400);
   }
 
   if (!Number.isInteger(days) || days < 1 || days > 7) {
     throw new AppError("Suspension duration must be between 1 and 7 days", 400);
   }
 
-  if (!adminId) {
-    throw new AppError("Unauthorized", 401);
-  }
   const user = await User.findById(userId);
 
   if (!user) {
@@ -740,17 +779,99 @@ export const suspendUser = asyncHandler(async (req: Request, res: Response) => {
 
   await createNotification({
     recipient: user._id,
-    sender: req.user!._id,
+    sender: admin._id,
     type: "announcement",
     announcementType: "suspension",
     title: "Account suspended",
-    message: `Your account has been suspended for ${days} day${days === 1 ? "" : "s"}.`,
+    message: `Your account has been suspended for ${days} day${
+      days === 1 ? "" : "s"
+    }.`,
     suspendedUntil,
   });
 
   return res.status(200).json({
     success: true,
-    message: `User suspended for ${days} day${days === 1 ? "" : "s"}`,
+    message: `User suspended for ${days} day${days === 1 ? "" : "s"}.`,
     suspendedUntil: user.suspendedUntil,
   });
 });
+
+export const getDraft = asyncHandler(async (req: Request, res: Response) => {
+ const userId = req.user?._id;
+
+    if (!userId) {
+      throw new AppError("Unauthorized", 401);
+    }
+
+    const drafts = await Blog.find({
+      author: userId,
+      status: "draft",
+    })
+      .sort({ updatedAt: -1 })
+      .populate("author", "name avatar");
+
+    res.status(200).json({
+      success: true,
+      count: drafts.length,
+      drafts,
+    });
+});
+
+export const getUserPosts = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user?._id;
+
+    if (!userId) {
+      throw new AppError("Unauthorized", 401);
+    }
+
+    const posts = await Blog.find({
+      author: userId,
+    })
+      .sort({ createdAt: -1 })
+      .populate("author", "name avatar");
+
+    res.status(200).json({
+      success: true,
+      posts,
+    });
+  },
+);
+
+export const searchAuthors = asyncHandler(
+  async (req: Request, res: Response) => {
+    const search = String(req.query.search || "").trim();
+
+    if (!search) {
+      return res.status(200).json({
+        success: true,
+        authors: [],
+      });
+    }
+
+    const authors = await User.find({
+      $or: [
+        {
+          username: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          name: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+      ],
+    })
+      .select("username name avatar")
+      .sort({ username: 1 })
+      .limit(20);
+
+    res.status(200).json({
+      success: true,
+      authors,
+    });
+  },
+);

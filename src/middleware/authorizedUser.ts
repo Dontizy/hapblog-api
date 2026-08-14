@@ -1,92 +1,150 @@
-import { Request, Response, NextFunction } from 'express';
-import Blog from '../models/Blog.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
-import { AppError } from '../utils/AppError.js';
-import mongoose from 'mongoose';
-import Comment from "../models/Comment.js"
-import Reply from "../models/Reply.js"
+import { Request, Response, NextFunction } from "express";
+import mongoose from "mongoose";
+import Blog from "../models/Blog.js";
+import Comment from "../models/Comment.js";
+import Reply from "../models/Reply.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { AppError } from "../utils/AppError.js";
 
-export const isAuthorized = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params as { id: string }
+
+
+const isOwner = (ownerId: mongoose.Types.ObjectId, userId: unknown) =>
+  ownerId.toString() === String(userId);
+
+
+export const isBlogAuthorOrAdmin = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params as { id: string };
+
     if (!mongoose.isValidObjectId(id)) {
-        throw new AppError('Invalid blog post id', 400)
+      throw new AppError("Invalid blog post ID", 400);
     }
-    const blog = await Blog.findById(id)
+
+    const blog = await Blog.findById(id);
+
     if (!blog) {
-        throw new AppError('Blog post not found', 404)
+      throw new AppError("Blog post not found", 404);
     }
-    const user = req.user?._id
-    if (!user) {
-        throw new AppError('Not authorized', 401)
-    }
-    const role = req.user?.role
-    if (String(blog.author) !== String(user) && role !== "admin") {
-        throw new AppError('Action denied, only author and admin allowed', 403)
-    }
-    next()
-})
 
-export const isAdmin = asyncHandler(async(req:Request, res:Response, next:NextFunction)=>{
-    if(!req.user){
-        throw new AppError('Not authorized', 401)
+    const userId = req.user?._id;
+
+    if (!userId) {
+      throw new AppError("Authentication required", 401);
     }
-    if(req.user?.role !== "admin"){
-         throw new AppError('Action denied, only is admin allowed', 403)
+
+    const isAdmin = req.user?.role === "admin";
+    const isAuthor = isOwner(blog.author, userId);
+
+    if (!isAuthor && !isAdmin) {
+      throw new AppError(
+        "Forbidden: administrator access required",
+        403,
+      );
     }
+
     next();
-})
+  },
+);
 
-export const isCommentAuthor=asyncHandler(async(req:Request, res:Response, next:NextFunction)=>{
-  const {commentId}=req.params as {
-    commentId:string
+export const isAdmin = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  if (!req.user) {
+    throw new AppError("Authentication required", 401);
   }
-  const userId = req.user?._id
-  if(!mongoose.isValidObjectId(commentId)){
-    throw new AppError("Invalid comment ID", 400)
-  }
-  const comment = await Comment.findById(commentId)
-  if(!comment){
-    throw new AppError("Comment not found", 404)
-  }
-  if(comment.author.toString() !== userId?.toString()){
-    throw new AppError("Permission denied, you are not the author of this comment", 403)
-  }
-  next()
-})
 
-export const isCommentAuthorOrAdmin = asyncHandler(async(req:Request, res:Response, next:NextFunction)=>{
-  const {commentId}=req.params as {
-    commentId:string
+  if (req.user.role !== "admin") {
+    throw new AppError(
+      "Forbidden: administrator access required",
+      403,
+    );
   }
-  const userId = req.user?._id
-  const role = req.user?.role
-  if(!mongoose.isValidObjectId(commentId)){
-    throw new AppError("Invalid comment ID", 400)
-  }
-  const comment = await Comment.findById(commentId)
-  if(!comment){
-    throw new AppError("Comment not found", 404)
-  }
-  const isAuthor = comment.author.toString() === userId?.toString();
-  const isAdmin = role === "admin"
-  if(!isAuthor && !isAdmin){
-    throw new AppError("Permission denied, only admin or author is allowed", 403)
-  }
-  next()
-})
 
+  next();
+};
+
+export const isCommentAuthor = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { commentId } = req.params as {
+      commentId: string;
+    };
+
+    const userId = req.user?._id;
+
+    if (!userId) {
+      throw new AppError("Authentication required", 401);
+    }
+
+    if (!mongoose.isValidObjectId(commentId)) {
+      throw new AppError("Invalid comment ID", 400);
+    }
+
+    const comment = await Comment.findById(commentId);
+
+    if (!comment) {
+      throw new AppError("Comment not found", 404);
+    }
+
+    if (!isOwner(comment.author, userId)) {
+      throw new AppError(
+        "Forbidden: administrator access required",
+        403,
+      );
+    }
+
+    next();
+  },
+);
+
+export const isCommentAuthorOrAdmin = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { commentId } = req.params as {
+      commentId: string;
+    };
+
+    const userId = req.user?._id;
+
+    if (!userId) {
+      throw new AppError("Authentication required", 401);
+    }
+
+    if (!mongoose.isValidObjectId(commentId)) {
+      throw new AppError("Invalid comment ID", 400);
+    }
+
+    const comment = await Comment.findById(commentId);
+
+    if (!comment) {
+      throw new AppError("Comment not found", 404);
+    }
+
+    const isAuthor = isOwner(comment.author, userId);
+    const isAdmin = req.user?.role === "admin";
+
+    if (!isAuthor && !isAdmin) {
+      throw new AppError(
+        "Forbidden: administrator access required",
+        403,
+      );
+    }
+
+    next();
+  },
+);
 
 export const isReplyAuthor = asyncHandler(
-  async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     const { replyId } = req.params as {
       replyId: string;
     };
 
     const userId = req.user?._id;
+
+    if (!userId) {
+      throw new AppError("Authentication required", 401);
+    }
 
     if (!mongoose.isValidObjectId(replyId)) {
       throw new AppError("Invalid reply ID", 400);
@@ -98,9 +156,9 @@ export const isReplyAuthor = asyncHandler(
       throw new AppError("Reply not found", 404);
     }
 
-    if (reply.author.toString() !== userId?.toString()) {
+    if (!isOwner(reply.author, userId)) {
       throw new AppError(
-        "Permission denied, you are not the author of this reply",
+        "Forbidden: administrator access required",
         403,
       );
     }
@@ -109,41 +167,57 @@ export const isReplyAuthor = asyncHandler(
   },
 );
 
-export const isReplyAuthorOrAdmin = asyncHandler(async(req:Request, res:Response, next:NextFunction)=>{
-  const {replyId}=req.params as {
-    replyId:string
-  }
-  const userId = req.user?._id
-  const role = req.user?.role
-  if(!mongoose.isValidObjectId(replyId)){
-    throw new AppError("Invalid reply ID", 400)
-  }
-  const reply = await Reply.findById(replyId)
-  if(!reply){
-    throw new AppError("Reply not found", 404)
-  }
-  const isAuthor = reply.author.toString() === userId?.toString();
-  const isAdmin = role === "admin"
-  if(!isAuthor && !isAdmin){
-    throw new AppError("Permission denied, only admin or author is allowed", 403)
-  }
-  next()
-})
+export const isReplyAuthorOrAdmin = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { replyId } = req.params as {
+      replyId: string;
+    };
+
+    const userId = req.user?._id;
+
+    if (!userId) {
+      throw new AppError("Authentication required", 401);
+    }
+
+    if (!mongoose.isValidObjectId(replyId)) {
+      throw new AppError("Invalid reply ID", 400);
+    }
+
+    const reply = await Reply.findById(replyId);
+
+    if (!reply) {
+      throw new AppError("Reply not found", 404);
+    }
+
+    const isAuthor = isOwner(reply.author, userId);
+    const isAdmin = req.user?.role === "admin";
+
+    if (!isAuthor && !isAdmin) {
+      throw new AppError(
+        "Forbidden: administrator access required",
+        403,
+      );
+    }
+
+    next();
+  },
+);
 
 export const checkSuspension = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const user = req.user;
 
     if (!user) {
-      throw new AppError("Not authorized", 401);
+      throw new AppError("Authentication required", 401);
     }
 
-    if (
+    const isSuspended =
       user.suspendedUntil &&
-      user.suspendedUntil > new Date()
-    ) {
+      user.suspendedUntil.getTime() > Date.now();
+
+    if (isSuspended) {
       throw new AppError(
-        "Your account is suspended until your suspension expires",
+        "Account is currently suspended",
         403,
       );
     }

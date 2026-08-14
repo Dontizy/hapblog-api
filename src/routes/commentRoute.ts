@@ -76,6 +76,10 @@ router.get("/post/:id/comments", optionalUser, fetchComments);
  *         description: Comment created successfully
  *       400:
  *         description: Invalid input
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Account is currently suspended
  *       404:
  *         description: Blog not found
  */
@@ -113,11 +117,30 @@ router.post("/post/:id/comment", protect, checkSuspension, createComment);
  *       200:
  *         description: Comment updated successfully
  *       400:
- *         description: Invalid input
+ *         description: Invalid comment ID
+ *       401:
+ *         description: Authentication required
  *       403:
- *         description: Permission denied, not author
+ *         description: "Forbidden — not the comment's author, or the account is suspended"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               AdministratorAcess:
+ *                 summary: Not the comment author
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Forbidden: administrator access required"
+ *               suspended:
+ *                 summary: Account is suspended
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Account is currently suspended"
  *       404:
- *         description: Comment or blog not found
+ *         description: Comment not found
  */
 router.patch(
   "/:id/comment/:commentId",
@@ -152,12 +175,29 @@ router.patch(
  *         description: Comment deleted successfully
  *       400:
  *         description: Invalid comment ID
- *       404:
- *         description: Blog post or comment not found
- *       403:
- *         description: Permission denied, not author or admin
  *       401:
- *         description: Unauthorized
+ *         description: Authentication required
+ *       403:
+ *         description: "Forbidden — not the comment's author/admin, or the account is suspended"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               AdministratorAcess:
+ *                 summary: Not the author or an admin
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Forbidden: administrator access required"
+ *               suspended:
+ *                 summary: Account is suspended
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Account is currently suspended"
+ *       404:
+ *         description: Comment not found
  */
 router.delete(
   "/:id/comment/:commentId",
@@ -193,7 +233,9 @@ router.delete(
  *       400:
  *         description: Invalid blog post ID or comment ID
  *       401:
- *         description: Unauthorized
+ *         description: Authentication required
+ *       403:
+ *         description: Account is currently suspended
  *       404:
  *         description: Blog post comment not found
  */
@@ -232,6 +274,10 @@ router.patch(
  *         description: Reply created successfully
  *       400:
  *         description: Invalid input
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Account is currently suspended
  *       404:
  *         description: Comment not found
  */
@@ -311,7 +357,7 @@ router.post("/comment/:commentId/reply", protect, checkSuspension, createReply);
  *                       type: string
  *                       format: date-time
  *       400:
- *         description: Bad Request — Invalid ObjectIDs or empty reply body
+ *         description: Bad Request — Invalid reply ID, or empty reply body
  *         content:
  *           application/json:
  *             schema:
@@ -324,15 +370,32 @@ router.post("/comment/:commentId/reply", protect, checkSuspension, createReply);
  *                   type: string
  *                   examples:
  *                     invalidId:
- *                       value: "Invalid comment or reply id"
+ *                       value: "Invalid reply ID"
  *                     missingBody:
  *                       value: "Reply body is required"
  *       401:
- *         description: Unauthorized — Missing or invalid authentication token
+ *         description: Authentication required
  *       403:
- *         description: Forbidden — User is not the author or an admin
+ *         description: "Forbidden — not the reply's author, or the account is suspended"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               AdministratorAcess:
+ *                 summary: Not the reply author
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Forbidden: administrator access required"
+ *               suspended:
+ *                 summary: Account is suspended
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Account is currently suspended"
  *       404:
- *         description: Not Found — Comment or reply does not exist
+ *         description: Not Found — Reply does not exist
  *         content:
  *           application/json:
  *             schema:
@@ -343,11 +406,7 @@ router.post("/comment/:commentId/reply", protect, checkSuspension, createReply);
  *                   example: false
  *                 message:
  *                   type: string
- *                   examples:
- *                     commentNotFound:
- *                       value: "Comment not found"
- *                     replyNotFound:
- *                       value: "Reply not found"
+ *                   example: "Reply not found"
  *       500:
  *         description: Internal Server Error
  */
@@ -381,8 +440,31 @@ router.patch(
  *     responses:
  *       200:
  *         description: Reply deleted successfully
+ *       400:
+ *         description: Invalid reply ID
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: "Forbidden — not the reply's author/admin, or the account is suspended"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               AdministratorAcess:
+ *                 summary: Not the author or an admin
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Forbidden: administrator access required"
+ *               suspended:
+ *                 summary: Account is suspended
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Account is currently suspended"
  *       404:
- *         description: Comment or reply not found
+ *         description: Reply not found
  */
 router.delete(
   "/comment/:id/reply/:replyId",
@@ -414,6 +496,10 @@ router.delete(
  *     responses:
  *       200:
  *         description: Reply like status updated
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Account is currently suspended
  *       404:
  *         description: Reply not found
  */

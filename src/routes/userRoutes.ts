@@ -18,14 +18,16 @@ import {
   userFollowing,
   publicUserFollowing,
   suspendUser,
+  getUserPosts,
+  getDraft,
+  searchAuthors
 } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { isAdmin } from "../middleware/authorizedUser.js";
 import { upload } from "../utils/uploader.js";
 import {
   getNotifications,
-  markNotificationAsRead,
-  openNotification,
+  markNotificationAsRead
 } from "../controllers/notificationController.js";
 
 import { broadcastNotification } from "../controllers/broadcastController.js";
@@ -127,9 +129,9 @@ router.post("/login", login);
  *       400:
  *         description: Invalid user ID
  *       401:
- *         description: Not authorized
+ *         description: Authentication required
  *       403:
- *         description: Only admin allowed
+ *         description: "Forbidden: administrator access required"
  *       404:
  *         description: User not found
  */
@@ -137,23 +139,62 @@ router.delete("/auth/delete/:id", protect, isAdmin, deleteUser);
 
 /**
  * @openapi
- * /user/auth/users:
+ * /users:
  *   get:
- *     summary: Get all users
- *     description: Retrieve all users (Admin only)
+ *     summary: Retrieve all users or search users
+ *     description: >
+ *       Retrieves a list of users sorted by creation date (newest first).
+ *       Supports optional search filtering across username, email, registration year (e.g., "2026"),
+ *       or registration month (1–12 for the current year).
  *     tags:
  *       - Users
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Term to search by username, email, year (YYYY), or month (1-12)
+ *         example: "john"
  *     responses:
  *       200:
- *         description: Users retrieved successfully
+ *         description: List of users retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
  *       401:
- *         description: Not authorized
+ *         description: Unauthorized — Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               status: fail
+ *               message: "Authentication required"
  *       403:
- *         description: Only admin allowed
+ *         description: Forbidden — Administrator access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               status: fail
+ *               message: "Forbidden: administrator access required"
  */
-router.get("/auth/users", protect, isAdmin, allUsers);
+router.get("/admin/users", protect, isAdmin, allUsers);
 
 /**
  * @openapi
@@ -199,7 +240,7 @@ router.put("/auth/password-update", protect, changePassword);
  *   patch:
  *     summary: Add or remove admin role
  *     tags:
- *       - Users
+ *       - Admin
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -214,6 +255,10 @@ router.put("/auth/password-update", protect, changePassword);
  *         description: User role updated successfully
  *       400:
  *         description: Invalid user ID
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: "Forbidden: administrator access required"
  *       404:
  *         description: User not found
  */
@@ -383,40 +428,6 @@ router.get("/auth/notifications", protect, getNotifications);
  */
 router.patch("/auth/notifications/:id/read", protect, markNotificationAsRead);
 
-/**
- * @swagger
- * /user/auth/notifications/{id}/open:
- *   get:
- *     summary: Open a notification and mark it as read
- *     tags: [Notifications]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Notification opened successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 blogId:
- *                   type: string
- *       404:
- *         description: Notification not found
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Internal server error
- */
-router.get("/auth/notifications/:id/open", protect, openNotification);
 
 /**
  * @swagger
@@ -761,11 +772,11 @@ router.patch("/auth/:userId/follow", protect, followUser);
 
 /**
  * @openapi
- * /user/notifications/broadcast:
+ * /user/admin/broadcast:
  *   post:
  *     summary: Broadcast notification to all users
  *     tags:
- *       - Notifications
+ *       - Admin
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -804,15 +815,234 @@ router.patch("/auth/:userId/follow", protect, followUser);
  *       400:
  *         description: Title and message are required
  *       401:
- *         description: Unauthorized
+ *         description: Authentication required
+ *       403:
+ *         description: "Forbidden: administrator access required"
  *       404:
  *         description: No users found
  */
 router.post(
-  "/notifications/broadcast",
+  "/admin/broadcast",
   protect,
   isAdmin,
   broadcastNotification,
 );
+
+/**
+ * @openapi
+ * /user/admin/{userId}/suspend:
+ *   patch:
+ *     summary: Suspend a user account
+ *     description: Allows an administrator to suspend a user account for a duration between 1 and 7 days. Sends a notification to the suspended user.
+ *     tags:
+ *       - Admin / Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: 650f123456789abcdef01234
+ *         description: Valid 24-character MongoDB ObjectId of the target user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - days
+ *             properties:
+ *               days:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 7
+ *                 example: 3
+ *                 description: Number of days to suspend the user (must be an integer from 1 to 7)
+ *     responses:
+ *       200:
+ *         description: User successfully suspended
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: User suspended for 3 days.
+ *                 suspendedUntil:
+ *                   type: string
+ *                   format: date-time
+ *                   example: "2026-08-17T11:20:38.000Z"
+ *       400:
+ *         description: Bad Request — Invalid user ID format or invalid suspension duration
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               invalidUserId:
+ *                 summary: Invalid User ID format
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Invalid user ID"
+ *               invalidDays:
+ *                 summary: Invalid suspension duration
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Suspension duration must be between 1 and 7 days"
+ *       401:
+ *         description: Unauthorized — Authentication token is missing or invalid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               status: fail
+ *               message: "Authentication required"
+ *       403:
+ *         description: Forbidden — Administrator access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               status: fail
+ *               message: "Forbidden: administrator access required"
+ *       404:
+ *         description: Not Found — Target user does not exist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               status: fail
+ *               message: "User not found"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               status: error
+ *               message: "Internal server error"
+ */
+router.patch("/admin/:userId/suspend", protect, isAdmin, suspendUser)
+
+
+/**
+ * @openapi
+ * /user/search-authors:
+ *   get:
+ *     summary: Search for authors by username or name
+ *     description: Searches for registered users matching a search query string against their username or name (case-insensitive). Returns up to 20 matching authors sorted alphabetically.
+ *     tags:
+ *       - Users
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Search term to match against author's username or name
+ *         example: "john"
+ *     responses:
+ *       200:
+ *         description: List of matching authors retrieved successfully (returns an empty array if search query is empty)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 authors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: "6680a1b2c3d4e5f678901234"
+ *                       username:
+ *                         type: string
+ *                         example: "johndoe"
+ *                       name:
+ *                         type: string
+ *                         example: "John Doe"
+ *                       avatar:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "https://example.com/avatar.jpg"
+ */
+router.get("/search-authors", protect, searchAuthors)
+
+/**
+ * @openapi
+ * /user/blogs:
+ *   get:
+ *     summary: Get all posts created by the authenticated user
+ *     description: Retrieves all blog posts (drafts and published) authored by the currently logged-in user, sorted by newest first.
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User posts retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 posts:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Blog'
+ *       401:
+ *         description: Unauthorized — Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               status: fail
+ *               message: "Unauthorized"
+ */
+router.get("/my-posts", protect, getUserPosts);
+
+/**
+ * @openapi
+ * /api/blogs/drafts:
+ *   get:
+ *     summary: Get all drafts for the logged-in user
+ *     tags:
+ *       - Drafts
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Array of drafts returned successfully
+ *       401:
+ *         description: Unauthorized — Authentication required
+ */
+router.get('/drafts', protect, getDraft)
 
 export default router;

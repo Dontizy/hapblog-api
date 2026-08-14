@@ -15,7 +15,7 @@ import {
 } from "../controllers/bookmarkController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { upload } from "../utils/uploader.js";
-import { isAuthorized } from "../middleware/authorizedUser.js";
+import { isBlogAuthorOrAdmin } from "../middleware/authorizedUser.js";
 import { checkSuspension } from "../middleware/authorizedUser.js";
 import { optionalUser } from "../middleware/optionalUser.js";
 
@@ -445,18 +445,35 @@ router.get("/post/:id", optionalUser, getBlogPost);
  *                       type: string
  *                       format: date-time
  *       400:
- *         description: Invalid blog ID format
+ *         description: Invalid blog post ID
  *       401:
- *         description: Unauthorized
+ *         description: Authentication required
  *       403:
- *         description: Action denied, only the author or an admin can update this post
+ *         description: "Forbidden — not the post's author/admin, or the account is suspended"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               AdministratorAccess:
+ *                 summary: Not the author or an admin
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Forbidden: administrator access required"
+ *               suspended:
+ *                 summary: Account is suspended
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Account is currently suspended"
  *       404:
- *         description: Post not found
+ *         description: Blog post not found
  */
 router.put(
   "/post/:id",
   protect,
-  isAuthorized,
+  isBlogAuthorOrAdmin,
   checkSuspension,
   upload.single("image"),
   updateBlogPost,
@@ -482,17 +499,36 @@ router.put(
  *     responses:
  *       200:
  *         description: Blog post deleted successfully
+ *       400:
+ *         description: Invalid blog post ID
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: "Forbidden — not the post's author/admin, or the account is suspended"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               AdministratorAccess:
+ *                 summary: Not the author or an admin
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Forbidden: administrator access required"
+ *               suspended:
+ *                 summary: Account is suspended
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Account is currently suspended"
  *       404:
  *         description: Blog post not found
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Action denied, only author and admin allowed
  */
 router.delete(
   "/post/:id",
   protect,
-  isAuthorized,
+  isBlogAuthorOrAdmin,
   checkSuspension,
   deleteBlogPost,
 );
@@ -518,7 +554,9 @@ router.delete(
  *       400:
  *         description: Invalid blog ID
  *       401:
- *         description: Unauthorized
+ *         description: Authentication required
+ *       403:
+ *         description: Account is currently suspended
  *       404:
  *         description: Blog post not found
  */
@@ -631,15 +669,32 @@ router.get("/bookmarks", protect, getBookmarks);
  *                       type: string
  *                       format: date-time
  *       400:
- *         description: Invalid blog ID format
+ *         description: Invalid blog post ID
  *       401:
- *         description: Unauthorized
+ *         description: Authentication required
  *       403:
- *         description: Action denied, only the author or admin is allowed
+ *         description: "Forbidden — not the post's author/admin, or the account is suspended"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               AdministratorAccess:
+ *                 summary: Not the author or an admin
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Forbidden: administrator access required"
+ *               suspended:
+ *                 summary: Account is suspended
+ *                 value:
+ *                   success: false
+ *                   status: fail
+ *                   message: "Account is currently suspended"
  *       404:
- *         description: Post not found
+ *         description: Blog post not found
  */
-router.patch("/post/:id/publish", protect, isAuthorized, checkSuspension, publishBlogPost);
+router.patch("/post/:id/publish", protect, isBlogAuthorOrAdmin, checkSuspension, publishBlogPost);
 
 /**
  * @openapi
@@ -699,4 +754,6 @@ router.patch("/post/:id/publish", protect, isAuthorized, checkSuspension, publis
  *         description: Unauthorized
  */
 router.get("/drafts", protect, getMyDrafts);
+
+
 export default router;

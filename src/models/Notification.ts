@@ -11,6 +11,7 @@ export interface INotification {
     | "reply_like"
     | "comment_like"
     | "follow"
+    | "welcome"
     | "announcement";
 
   announcementType?: "general" | "suspension";
@@ -51,6 +52,7 @@ const notificationSchema = new Schema<INotification>(
         "comment_like",
         "follow",
         "announcement",
+        "welcome"
       ],
       required: true,
     },
