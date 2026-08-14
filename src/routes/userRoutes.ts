@@ -142,7 +142,8 @@ router.delete("/auth/delete/:id", protect, isAdmin, deleteUser);
  * /user/admin/users:
  *   get:
  *     summary: Get paginated users list with search filter
- *     tags: Admin
+ *     tags:
+ *       - Admin
  *     parameters:
  *       - in: query
  *         name: search
