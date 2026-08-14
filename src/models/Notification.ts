@@ -38,8 +38,7 @@ const notificationSchema = new Schema<INotification>(
     },
     sender: {
       type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      ref: "User"
     },
 
     type: {
