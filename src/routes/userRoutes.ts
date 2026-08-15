@@ -1049,7 +1049,7 @@ router.get("/my-posts", protect, getUserPosts);
 
 /**
  * @openapi
- * /api/blogs/drafts:
+ * /user/blog/drafts:
  *   get:
  *     summary: Get all drafts for the logged-in user
  *     tags:
@@ -1062,7 +1062,7 @@ router.get("/my-posts", protect, getUserPosts);
  *       401:
  *         description: Unauthorized — Authentication required
  */
-router.get('/drafts', protect, getDraft)
+router.get('/blog/drafts', protect, getDraft)
 
 /**
  * @swagger
