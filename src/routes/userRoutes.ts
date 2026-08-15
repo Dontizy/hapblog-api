@@ -1066,11 +1066,11 @@ router.get('/drafts', protect, getDraft)
 
 /**
  * @swagger
- * /user/post/public/{userId}:
+ * /user/posts/public/{userId}:
  *   get:
  *     summary: Get public posts created by a specific user
  *     tags:
- *       - Posts
+ *       - Users
  *     parameters:
  *       - in: path
  *         name: userId
@@ -1131,6 +1131,6 @@ router.get('/drafts', protect, getDraft)
  *       500:
  *         description: Internal Server Error
  */
-router.get("/public/post/:userId", getPublicUserPosts);
+router.get("/public/posts/:userId", getPublicUserPosts);
 
 export default router;
