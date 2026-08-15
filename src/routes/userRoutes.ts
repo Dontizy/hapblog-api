@@ -20,7 +20,8 @@ import {
   suspendUser,
   getUserPosts,
   getDraft,
-  searchAuthors
+  searchAuthors,
+  getPublicUserPosts
 } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { isAdmin } from "../middleware/authorizedUser.js";
@@ -1062,5 +1063,74 @@ router.get("/my-posts", protect, getUserPosts);
  *         description: Unauthorized — Authentication required
  */
 router.get('/drafts', protect, getDraft)
+
+/**
+ * @swagger
+ * /user/post/public/{userId}:
+ *   get:
+ *     summary: Get public posts created by a specific user
+ *     tags:
+ *       - Posts
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: MongoDB ObjectId of the post author
+ *         example: "65b21d4f8e3f2a1a0c8b4567"
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved user's public posts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 posts:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: "65c32e5f9e4f3b2b1d9c7890"
+ *                       title:
+ *                         type: string
+ *                         example: "Getting Started with Node.js"
+ *                       content:
+ *                         type: string
+ *                         example: "Here is a complete guide to starting with Express..."
+ *                       author:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             example: "65b21d4f8e3f2a1a0c8b4567"
+ *                           name:
+ *                             type: string
+ *                             example: "John Doe"
+ *                           avatar:
+ *                             type: string
+ *                             example: "https://example.com/avatar.jpg"
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2026-03-15T10:30:00.000Z"
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2026-03-15T10:30:00.000Z"
+ *       400:
+ *         description: Invalid User ID format
+ *       404:
+ *         description: User or posts not found
+ *       500:
+ *         description: Internal Server Error
+ */
+router.get("/public/post/:userId", getPublicUserPosts);
 
 export default router;

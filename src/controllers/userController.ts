@@ -16,8 +16,6 @@ import { resend } from "../config/resend.js";
 import { createNotification } from "../utils/createNotification.js";
 import { PopulatedFollower } from "../types/PopulatedFollower.js";
 
-
-
 const hashPassword = async (plainPassword: string) => {
   const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(plainPassword, salt);
@@ -134,7 +132,7 @@ export const login = asyncHandler(
         role: user.role,
         bio: user.bio,
         avatar: user.avatar,
-        suspendedUntil:user.suspendedUntil
+        suspendedUntil: user.suspendedUntil,
       },
       token,
     });
@@ -146,7 +144,10 @@ export const allUsers = asyncHandler(async (req: Request, res: Response) => {
 
   // Extract pagination parameters with safe fallbacks
   const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
-  const limit = Math.max(1, parseInt(String(req.query.limit || "10"), 10) || 10);
+  const limit = Math.max(
+    1,
+    parseInt(String(req.query.limit || "10"), 10) || 10,
+  );
   const skip = (page - 1) * limit;
 
   const query: Record<string, unknown> = {};
@@ -207,10 +208,7 @@ export const allUsers = asyncHandler(async (req: Request, res: Response) => {
   // Fetch total count and paginated user list concurrently
   const [totalUsers, users] = await Promise.all([
     User.countDocuments(query),
-    User.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit),
+    User.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
   ]);
 
   res.status(200).json({
@@ -308,12 +306,12 @@ export const addOrRemoveAdmin = asyncHandler(
 
     await user.save();
 
-   return res.status(200).json({
-  success: true,
-  message: isMakingAdmin
-    ? `${user.name} is now an admin`
-    : `${user.name} is no longer an admin`,
-});
+    return res.status(200).json({
+      success: true,
+      message: isMakingAdmin
+        ? `${user.name} is now an admin`
+        : `${user.name} is no longer an admin`,
+    });
   },
 );
 
@@ -359,7 +357,7 @@ export const myProfile = asyncHandler(async (req: Request, res: Response) => {
     following: user.following,
     bookmarks: user.bookmarks,
     blogsCount: blog,
-    suspendedUntil:user.suspendedUntil,
+    suspendedUntil: user.suspendedUntil,
     bookmarksCount: user.bookmarks?.length || 0,
     followersCount: user.followers?.length || 0,
     followingCount: user.following?.length || 0,
@@ -701,16 +699,10 @@ export const resetPassword = asyncHandler(
     }
 
     if (password.length < 5) {
-      throw new AppError(
-        "Password must be at least 5 characters",
-        400,
-      );
+      throw new AppError("Password must be at least 5 characters", 400);
     }
 
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(token)
-      .digest("hex");
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
@@ -722,8 +714,7 @@ export const resetPassword = asyncHandler(
     if (!user) {
       return res.status(200).json({
         success: true,
-        message:
-          "If an account exists, a password reset link has been sent.",
+        message: "If an account exists, a password reset link has been sent.",
       });
     }
 
@@ -1050,24 +1041,24 @@ export const suspendUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getDraft = asyncHandler(async (req: Request, res: Response) => {
- const userId = req.user?._id;
+  const userId = req.user?._id;
 
-    if (!userId) {
-      throw new AppError("Unauthorized", 401);
-    }
+  if (!userId) {
+    throw new AppError("Unauthorized", 401);
+  }
 
-    const drafts = await Blog.find({
-      author: userId,
-      status: "draft",
-    })
-      .sort({ updatedAt: -1 })
-      .populate("author", "name avatar");
+  const drafts = await Blog.find({
+    author: userId,
+    status: "draft",
+  })
+    .sort({ updatedAt: -1 })
+    .populate("author", "name avatar");
 
-    res.status(200).json({
-      success: true,
-      count: drafts.length,
-      drafts,
-    });
+  res.status(200).json({
+    success: true,
+    count: drafts.length,
+    drafts,
+  });
 });
 
 export const getUserPosts = asyncHandler(
@@ -1077,6 +1068,23 @@ export const getUserPosts = asyncHandler(
     if (!userId) {
       throw new AppError("Unauthorized", 401);
     }
+
+    const posts = await Blog.find({
+      author: userId,
+    })
+      .sort({ createdAt: -1 })
+      .populate("author", "name avatar");
+
+    res.status(200).json({
+      success: true,
+      posts,
+    });
+  },
+);
+
+export const getPublicUserPosts = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { userId } = req.params as { userId: string };
 
     const posts = await Blog.find({
       author: userId,
