@@ -1088,6 +1088,7 @@ export const getPublicUserPosts = asyncHandler(
 
     const posts = await Blog.find({
       author: userId,
+      status: "published",
     })
       .sort({ createdAt: -1 })
       .populate("author", "name avatar");
