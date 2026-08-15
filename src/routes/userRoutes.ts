@@ -1131,6 +1131,7 @@ router.get('/drafts', protect, getDraft)
  *       500:
  *         description: Internal Server Error
  */
-router.get("/public/posts/:userId", getPublicUserPosts);
+router.get("/posts/public/:userId", getPublicUserPosts);
+
 
 export default router;
