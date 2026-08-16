@@ -789,6 +789,7 @@ router.get("/auth/:username/following", protect, publicUserFollowing);
  */
 router.patch("/auth/:userId/follow", protect, followUser);
 
+
 /**
  * @openapi
  * /user/admin/broadcast:
@@ -962,11 +963,11 @@ router.patch("/admin/:userId/suspend", protect, isAdmin, suspendUser)
 
 
 /**
- * @openapi
- * /user/search-authors:
+ * @swagger
+ * /user/author/search:
  *   get:
- *     summary: Search for authors by username or name
- *     description: Searches for registered users matching a search query string against their username or name (case-insensitive). Returns up to 20 matching authors sorted alphabetically.
+ *     summary: Search authors by name or username
+ *     description: Search users matching a query against their username or name. Supports pagination and returns basic profile info.
  *     tags:
  *       - Users
  *     parameters:
@@ -975,11 +976,30 @@ router.patch("/admin/:userId/suspend", protect, isAdmin, suspendUser)
  *         schema:
  *           type: string
  *         required: false
- *         description: Search term to match against author's username or name
- *         example: "john"
+ *         description: Search keyword matching name or username (case-insensitive).
+ *         example: john
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *         required: false
+ *         description: Page number for pagination.
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *         required: false
+ *         description: Number of items per page.
+ *         example: 20
  *     responses:
  *       200:
- *         description: List of matching authors retrieved successfully (returns an empty array if search query is empty)
+ *         description: Successfully retrieved matching authors.
  *         content:
  *           application/json:
  *             schema:
@@ -995,19 +1015,73 @@ router.patch("/admin/:userId/suspend", protect, isAdmin, suspendUser)
  *                     properties:
  *                       _id:
  *                         type: string
- *                         example: "6680a1b2c3d4e5f678901234"
+ *                         example: 64b8f0a2e1234567890abcde
  *                       username:
  *                         type: string
- *                         example: "johndoe"
+ *                         example: johndoe
  *                       name:
  *                         type: string
- *                         example: "John Doe"
+ *                         example: John Doe
  *                       avatar:
  *                         type: string
  *                         nullable: true
- *                         example: "https://example.com/avatar.jpg"
+ *                         example: https://res.cloudinary.com/demo/image/upload/v1/avatar.jpg
+ *                       bio:
+ *                         type: string
+ *                         nullable: true
+ *                         example: Software Engineer & Tech Blogger
+ *                 currentPage:
+ *                   type: integer
+ *                   example: 1
+ *                 totalPages:
+ *                   type: integer
+ *                   example: 3
+ *                 totalAuthors:
+ *                   type: integer
+ *                   example: 45
+ *                 limit:
+ *                   type: integer
+ *                   example: 20
+ *             examples:
+ *               SuccessResults:
+ *                 summary: Matching authors found
+ *                 value:
+ *                   success: true
+ *                   authors:
+ *                     - _id: "64b8f0a2e1234567890abcde"
+ *                       username: "johndoe"
+ *                       name: "John Doe"
+ *                       avatar: "https://example.com/avatar.jpg"
+ *                       bio: "Tech enthusiast and writer"
+ *                   currentPage: 1
+ *                   totalPages: 1
+ *                   totalAuthors: 1
+ *                   limit: 20
+ *               EmptyResults:
+ *                 summary: Empty search string or no matches
+ *                 value:
+ *                   success: true
+ *                   authors: []
+ *                   currentPage: 1
+ *                   totalPages: 0
+ *                   totalAuthors: 0
+ *                   limit: 20
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
  */
-router.get("/search-authors", protect, searchAuthors)
+router.get("/author/search", protect, searchAuthors)
+
 
 /**
  * @openapi

@@ -732,6 +732,7 @@ export const resetPassword = asyncHandler(
   },
 );
 
+
 export const followUser = asyncHandler(async (req: Request, res: Response) => {
   const id = req.user?._id;
   const { userId } = req.params as { userId: string };
@@ -796,6 +797,7 @@ export const followUser = asyncHandler(async (req: Request, res: Response) => {
     message: `You are now following ${userToFollow.username}`,
   });
 });
+
 
 export const getUserProfile = asyncHandler(
   async (req: Request, res: Response) => {
@@ -1047,17 +1049,32 @@ export const getDraft = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError("Unauthorized", 401);
   }
 
-  const drafts = await Blog.find({
+  const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+  const limit = Math.max(1, parseInt(String(req.query.limit || "10"), 10) || 10);
+  const skip = (page - 1) * limit;
+
+  // FIX: Add 'as const' so status is inferred as the literal "draft", not string
+  const query = {
     author: userId,
-    status: "draft",
-  })
-    .sort({ updatedAt: -1 })
-    .populate("author", "name avatar");
+    status: "draft" as const,
+  };
+
+  const [totalDrafts, drafts] = await Promise.all([
+    Blog.countDocuments(query),
+    Blog.find(query)
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("author", "name avatar"),
+  ]);
 
   res.status(200).json({
     success: true,
-    count: drafts.length,
     drafts,
+    currentPage: page,
+    totalPages: Math.ceil(totalDrafts / limit),
+    totalDrafts,
+    limit,
   });
 });
 
@@ -1100,6 +1117,11 @@ export const getPublicUserPosts = asyncHandler(
   },
 );
 
+// Helper function to safely escape regex special characters
+const escapeRegex = (text: string): string => {
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+};
+
 export const searchAuthors = asyncHandler(
   async (req: Request, res: Response) => {
     const search = String(req.query.search || "").trim();
@@ -1108,32 +1130,47 @@ export const searchAuthors = asyncHandler(
       return res.status(200).json({
         success: true,
         authors: [],
+        totalAuthors: 0,
+        currentPage: 1,
+        totalPages: 0,
       });
     }
 
-    const authors = await User.find({
+    // Pagination query params
+    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const limit = Math.max(1, parseInt(String(req.query.limit || "20"), 10) || 20);
+    const skip = (page - 1) * limit;
+
+    // Safe regex string search
+    const searchRegex = new RegExp(escapeRegex(search), "i");
+
+    const query = {
       $or: [
-        {
-          username: {
-            $regex: search,
-            $options: "i",
-          },
-        },
-        {
-          name: {
-            $regex: search,
-            $options: "i",
-          },
-        },
+        { username: searchRegex },
+        { name: searchRegex },
       ],
-    })
-      .select("username name avatar")
-      .sort({ username: 1 })
-      .limit(20);
+    };
+
+   
+    const [totalAuthors, authors] = await Promise.all([
+      User.countDocuments(query),
+      User.find(query)
+        .select("username name avatar bio")
+        .sort({ username: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
 
     res.status(200).json({
       success: true,
       authors,
+      currentPage: page,
+      totalPages: Math.ceil(totalAuthors / limit),
+      totalAuthors,
+      limit,
     });
-  },
+  }
 );
+
+

@@ -696,6 +696,7 @@ router.get("/bookmarks", protect, getBookmarks);
  */
 router.patch("/post/:id/publish", protect, isBlogAuthorOrAdmin, checkSuspension, publishBlogPost);
 
+
 /**
  * @openapi
  * /blog/drafts:
