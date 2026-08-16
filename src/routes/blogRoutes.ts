@@ -252,7 +252,7 @@ router.get("/posts", optionalUser, getAllBlogPost);
  * @openapi
  * /blog/post/{id}:
  *   get:
- *     summary: Get single published blog post by ID
+ *     summary: Get single blog post by ID
  *     tags:
  *       - Blogs
  *     parameters:

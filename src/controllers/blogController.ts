@@ -135,48 +135,66 @@ export const getAllBlogPost = asyncHandler(
   },
 );
 
-export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params as { id: string };
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid blog id", 400);
-  }
+export const getBlogPost = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
 
-  const [blog, commentsCount] = await Promise.all([
-    Blog.findOne({
+    if (!mongoose.isValidObjectId(id)) {
+      throw new AppError("Invalid blog id", 400);
+    }
+
+    const userId = req.user?._id;
+
+    
+    const blog = await Blog.findOne({
       _id: id,
-      status: "published",
-    }).populate("author", "username name avatar bio"),
+      ...(userId
+        ? {
+            $or: [
+              { status: "published" },
+              { author: userId },
+            ],
+          }
+        : {
+            status: "published",
+          }),
+    }).populate("author", "username name avatar bio");
 
-    Comment.countDocuments({ blog: id }),
-  ]);
+    if (!blog) {
+      throw new AppError("Post does not exist", 404);
+    }
 
-  if (!blog) {
-    throw new AppError("Post does not exist", 404);
-  }
-  const userId = req.user?._id;
+    const [commentsCount, user] = await Promise.all([
+      Comment.countDocuments({ blog: id }),
+      userId
+        ? User.findById(userId).select("bookmarks")
+        : null,
+    ]);
 
-  let bookmarkedIds = new Set<string>();
+    const bookmarkedIds = new Set(
+      user?.bookmarks.map((bookmark) => bookmark.toString()) ?? [],
+    );
 
-  if (userId) {
-    const user = await User.findById(userId).select("bookmarks");
+    const isLiked =
+      !!userId &&
+      blog.likes.some((like) => like.equals(userId));
 
-    bookmarkedIds = new Set(user?.bookmarks.map((id) => id.toString()) ?? []);
-  }
+    const blogData = blog.toObject();
 
-  const isLiked = !!userId && blog.likes.some((like) => like.equals(userId));
-  const blogData = blog.toObject();
-
-  return res.status(200).json({
-    success: true,
-    blog: {
-      ...blogData,
-      commentsCount,
-      isLiked,
-      isBookmarked: bookmarkedIds.has(blog._id.toString()),
-      readingTime: getReadingTime(blogData.content),
-    },
-  });
-});
+    return res.status(200).json({
+      success: true,
+      blog: {
+        ...blogData,
+        commentsCount,
+        isLiked,
+        isBookmarked: bookmarkedIds.has(
+          blog._id.toString(),
+        ),
+        readingTime: getReadingTime(blogData.content),
+      },
+    });
+  },
+);
 
 export const updateBlogPost = asyncHandler(
   async (req: Request<{}, {}, updateBlogType>, res: Response) => {
@@ -344,6 +362,3 @@ export const publishBlogPost = asyncHandler(
     });
   },
 );
-
-
-
