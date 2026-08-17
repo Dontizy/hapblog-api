@@ -677,7 +677,17 @@ router.get("/bookmarks", protect, getBookmarks);
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 status:
+ *                   type: string
+ *                   example: "fail"
+ *                 message:
+ *                   type: string
+ *                   example: "Forbidden: administrator access required"
  *             examples:
  *               AdministratorAccess:
  *                 summary: Not the author or an admin
@@ -695,7 +705,6 @@ router.get("/bookmarks", protect, getBookmarks);
  *         description: Blog post not found
  */
 router.patch("/post/:id/publish", protect, isBlogAuthorOrAdmin, checkSuspension, publishBlogPost);
-
 
 /**
  * @openapi
