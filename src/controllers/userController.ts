@@ -1088,7 +1088,6 @@ export const getDraft = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
-
 export const getUserPosts = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?._id;
@@ -1105,7 +1104,7 @@ export const getUserPosts = asyncHandler(
     const filter = {
       author: userId,
       status: "published",
-    };
+    } as const;
 
     const [posts, totalPosts] = await Promise.all([
       Blog.find(filter)
@@ -1149,7 +1148,7 @@ export const getPublicUserPosts = asyncHandler(
     const filter = {
       author: userId,
       status: "published",
-    };
+    } as const;
 
     const [posts, totalPosts] = await Promise.all([
       Blog.find(filter)
