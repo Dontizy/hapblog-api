@@ -1085,7 +1085,7 @@ router.get("/author/search", protect, searchAuthors)
 
 /**
  * @openapi
- * /user/blogs:
+ * /user/my-posts:
  *   get:
  *     summary: Get all posts created by the authenticated user
  *     description: Retrieves all blog posts (drafts and published) authored by the currently logged-in user, sorted by newest first.
