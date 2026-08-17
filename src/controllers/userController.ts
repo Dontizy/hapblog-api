@@ -139,108 +139,96 @@ export const login = asyncHandler(
   },
 );
 
-export const allUsers = asyncHandler(
-  async (req: Request, res: Response) => {
-    const search = String(req.query.search || "").trim();
+export const allUsers = asyncHandler(async (req: Request, res: Response) => {
+  const search = String(req.query.search || "").trim();
 
-    const month = req.query.month
-      ? Number(req.query.month)
-      : undefined;
+  const month = req.query.month ? Number(req.query.month) : undefined;
 
-    const year = req.query.year
-      ? Number(req.query.year)
-      : undefined;
+  const year = req.query.year ? Number(req.query.year) : undefined;
 
-    const page = Math.max(
-      1,
-      parseInt(String(req.query.page || "1"), 10) || 1,
-    );
+  const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
 
-    const limit = Math.max(
-      1,
-      parseInt(String(req.query.limit || "10"), 10) || 10,
-    );
+  const limit = Math.max(
+    1,
+    parseInt(String(req.query.limit || "10"), 10) || 10,
+  );
 
-    const skip = (page - 1) * limit;
+  const skip = (page - 1) * limit;
 
-    const query: Record<string, unknown> = {};
+  const query: Record<string, unknown> = {};
 
-    // Search by username or email
-    if (search) {
-      query.$or = [
-        {
-          username: {
-            $regex: search,
-            $options: "i",
-          },
+  // Search by username or email
+  if (search) {
+    query.$or = [
+      {
+        username: {
+          $regex: search,
+          $options: "i",
         },
-        {
-          email: {
-            $regex: search,
-            $options: "i",
-          },
+      },
+      {
+        email: {
+          $regex: search,
+          $options: "i",
         },
-      ];
+      },
+    ];
+  }
+
+  // Validate year
+  if (
+    year !== undefined &&
+    (!Number.isInteger(year) || year < 1900 || year > 2100)
+  ) {
+    throw new AppError("Invalid year", 400);
+  }
+
+  // Validate month
+  if (
+    month !== undefined &&
+    (!Number.isInteger(month) || month < 1 || month > 12)
+  ) {
+    throw new AppError("Invalid month", 400);
+  }
+
+  // Filter by creation date
+  if (month !== undefined || year !== undefined) {
+    const selectedYear = year ?? new Date().getFullYear();
+
+    let start: Date;
+    let end: Date;
+
+    if (month !== undefined) {
+      // Specific month
+      start = new Date(selectedYear, month - 1, 1);
+      end = new Date(selectedYear, month, 1);
+    } else {
+      // Entire year
+      start = new Date(selectedYear, 0, 1);
+      end = new Date(selectedYear + 1, 0, 1);
     }
 
-    // Validate year
-    if (
-      year !== undefined &&
-      (!Number.isInteger(year) || year < 1900 || year > 2100)
-    ) {
-      throw new AppError("Invalid year", 400);
-    }
+    query.createdAt = {
+      $gte: start,
+      $lt: end,
+    };
+  }
 
-    // Validate month
-    if (
-      month !== undefined &&
-      (!Number.isInteger(month) || month < 1 || month > 12)
-    ) {
-      throw new AppError("Invalid month", 400);
-    }
+  const [totalUsers, users] = await Promise.all([
+    User.countDocuments(query),
 
-    // Filter by creation date
-    if (month !== undefined || year !== undefined) {
-      const selectedYear = year ?? new Date().getFullYear();
+    User.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+  ]);
 
-      let start: Date;
-      let end: Date;
-
-      if (month !== undefined) {
-        // Specific month
-        start = new Date(selectedYear, month - 1, 1);
-        end = new Date(selectedYear, month, 1);
-      } else {
-        // Entire year
-        start = new Date(selectedYear, 0, 1);
-        end = new Date(selectedYear + 1, 0, 1);
-      }
-
-      query.createdAt = {
-        $gte: start,
-        $lt: end,
-      };
-    }
-
-    const [totalUsers, users] = await Promise.all([
-      User.countDocuments(query),
-
-      User.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-    ]);
-
-    return res.status(200).json({
-      success: true,
-      users,
-      currentPage: page,
-      totalPages: Math.ceil(totalUsers / limit),
-      totalUsers,
-      limit,
-    });
-  },
-);
+  return res.status(200).json({
+    success: true,
+    users,
+    currentPage: page,
+    totalPages: Math.ceil(totalUsers / limit),
+    totalUsers,
+    limit,
+  });
+});
 
 export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
@@ -753,7 +741,6 @@ export const resetPassword = asyncHandler(
   },
 );
 
-
 export const followUser = asyncHandler(async (req: Request, res: Response) => {
   const id = req.user?._id;
   const { userId } = req.params as { userId: string };
@@ -818,7 +805,6 @@ export const followUser = asyncHandler(async (req: Request, res: Response) => {
     message: `You are now following ${userToFollow.username}`,
   });
 });
-
 
 export const getUserProfile = asyncHandler(
   async (req: Request, res: Response) => {
@@ -1071,7 +1057,10 @@ export const getDraft = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
-  const limit = Math.max(1, parseInt(String(req.query.limit || "10"), 10) || 10);
+  const limit = Math.max(
+    1,
+    parseInt(String(req.query.limit || "10"), 10) || 10,
+  );
   const skip = (page - 1) * limit;
 
   // FIX: Add 'as const' so status is inferred as the literal "draft", not string
@@ -1099,6 +1088,7 @@ export const getDraft = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+
 export const getUserPosts = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?._id;
@@ -1107,15 +1097,37 @@ export const getUserPosts = asyncHandler(
       throw new AppError("Unauthorized", 401);
     }
 
-    const posts = await Blog.find({
+    // Parse pagination query parameters with fallback defaults
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit as string, 10) || 10);
+    const skip = (page - 1) * limit;
+
+    const filter = {
       author: userId,
-    })
-      .sort({ createdAt: -1 })
-      .populate("author", "name avatar");
+      status: "published",
+    };
+
+    const [posts, totalPosts] = await Promise.all([
+      Blog.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("author", "name avatar")
+        .lean(),
+      Blog.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       success: true,
-      posts,
+      data: {
+        posts,
+        pagination: {
+          totalPosts,
+          page,
+          limit,
+          totalPages: Math.ceil(totalPosts / limit),
+        },
+      },
     });
   },
 );
@@ -1124,16 +1136,42 @@ export const getPublicUserPosts = asyncHandler(
   async (req: Request, res: Response) => {
     const { userId } = req.params as { userId: string };
 
-    const posts = await Blog.find({
+    // Validate if provided ID is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new AppError("Invalid user ID format", 400);
+    }
+
+    // Parse pagination query parameters with fallbacks
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit as string, 10) || 10);
+    const skip = (page - 1) * limit;
+
+    const filter = {
       author: userId,
       status: "published",
-    })
-      .sort({ createdAt: -1 })
-      .populate("author", "name avatar");
+    };
+
+    const [posts, totalPosts] = await Promise.all([
+      Blog.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("author", "name avatar")
+        .lean(),
+      Blog.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       success: true,
-      posts,
+      data: {
+        posts,
+        pagination: {
+          totalPosts,
+          page,
+          limit,
+          totalPages: Math.ceil(totalPosts / limit),
+        },
+      },
     });
   },
 );
@@ -1159,19 +1197,18 @@ export const searchAuthors = asyncHandler(
 
     // Pagination query params
     const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
-    const limit = Math.max(1, parseInt(String(req.query.limit || "20"), 10) || 20);
+    const limit = Math.max(
+      1,
+      parseInt(String(req.query.limit || "20"), 10) || 20,
+    );
     const skip = (page - 1) * limit;
 
     // Safe regex string search
     const searchRegex = new RegExp(escapeRegex(search), "i");
 
     const query = {
-      $or: [
-        { username: searchRegex },
-        { name: searchRegex },
-      ],
+      $or: [{ username: searchRegex }, { name: searchRegex }],
     };
-
 
     const [totalAuthors, authors] = await Promise.all([
       User.countDocuments(query),
@@ -1191,7 +1228,5 @@ export const searchAuthors = asyncHandler(
       totalAuthors,
       limit,
     });
-  }
+  },
 );
-
-
