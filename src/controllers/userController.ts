@@ -232,21 +232,47 @@ export const allUsers = asyncHandler(async (req: Request, res: Response) => {
 
 export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
+
   if (!mongoose.isValidObjectId(id)) {
     throw new AppError("Invalid user id", 400);
   }
+
   const user = await User.findById(id);
+
   if (!user) {
     throw new AppError("User not found", 404);
   }
 
-  // 1. Fetch only the IDs of the user's blogs (highly efficient)
-  const userBlogs = await Blog.find({ author: user._id }).select("_id");
-  const blogIds = userBlogs.map((blog) => blog._id);
-  if (blogIds.length > 0) {
-    await Comment.deleteMany({ blog: { $in: blogIds } });
+  // Prevent the Hapblog system account from being deleted
+  const hapblogSystemUserId = process.env.HAPBLOG_SYSTEM_USER_ID;
+
+  if (hapblogSystemUserId && user._id.toString() === hapblogSystemUserId) {
+    throw new AppError("The Hapblog system account cannot be deleted", 403);
   }
-  await Blog.deleteMany({ author: user._id });
+
+  // Prevent an admin from deleting their own account
+  if (req.user?._id.toString() === id) {
+    throw new AppError("You cannot delete your own account from here", 403);
+  }
+
+  const userBlogs = await Blog.find({
+    author: user._id,
+  }).select("_id");
+
+  const blogIds = userBlogs.map((blog) => blog._id);
+
+  // Delete comments belonging to the user's blogs
+  if (blogIds.length > 0) {
+    await Comment.deleteMany({
+      blog: { $in: blogIds },
+    });
+  }
+
+  // Delete the user's blogs
+  await Blog.deleteMany({
+    author: user._id,
+  });
+
   await User.findByIdAndDelete(id);
 
   return res.status(200).json({
@@ -305,6 +331,17 @@ export const addOrRemoveAdmin = asyncHandler(
       throw new AppError("User not found", 404);
     }
 
+    // Prevent the Hapblog system account from losing admin privileges
+    const hapblogSystemUserId = process.env.HAPBLOG_SYSTEM_USER_ID;
+
+    if (hapblogSystemUserId && user._id.toString() === hapblogSystemUserId) {
+      throw new AppError(
+        "The Hapblog system account must remain an admin",
+        403,
+      );
+    }
+
+    // Prevent admins from changing their own role
     if (req.user?._id.toString() === id) {
       throw new AppError("You cannot change your own role", 403);
     }
@@ -1021,6 +1058,18 @@ export const suspendUser = asyncHandler(async (req: Request, res: Response) => {
 
   if (!user) {
     throw new AppError("User not found", 404);
+  }
+
+  // Prevent the Hapblog system account from being suspended
+  const hapblogSystemUserId = process.env.HAPBLOG_SYSTEM_USER_ID;
+
+  if (hapblogSystemUserId && user._id.toString() === hapblogSystemUserId) {
+    throw new AppError("The Hapblog system account cannot be suspended", 403);
+  }
+
+  // Prevent an admin from suspending themselves
+  if (admin._id.toString() === userId) {
+    throw new AppError("You cannot suspend your own account", 403);
   }
 
   const suspendedUntil = new Date();

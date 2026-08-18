@@ -21,14 +21,14 @@ import {
   getUserPosts,
   getDraft,
   searchAuthors,
-  getPublicUserPosts
+  getPublicUserPosts,
 } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { isAdmin } from "../middleware/authorizedUser.js";
 import { upload } from "../utils/uploader.js";
 import {
   getNotifications,
-  markNotificationAsRead
+  markNotificationAsRead,
 } from "../controllers/notificationController.js";
 
 import { broadcastNotification } from "../controllers/broadcastController.js";
@@ -447,7 +447,6 @@ router.get("/auth/notifications", protect, getNotifications);
  */
 router.patch("/auth/notifications/:id/read", protect, markNotificationAsRead);
 
-
 /**
  * @swagger
  * /user/auth/bio/update:
@@ -789,7 +788,6 @@ router.get("/auth/:username/following", protect, publicUserFollowing);
  */
 router.patch("/auth/:userId/follow", protect, followUser);
 
-
 /**
  * @openapi
  * /user/admin/broadcast:
@@ -841,12 +839,7 @@ router.patch("/auth/:userId/follow", protect, followUser);
  *       404:
  *         description: No users found
  */
-router.post(
-  "/admin/broadcast",
-  protect,
-  isAdmin,
-  broadcastNotification,
-);
+router.post("/admin/broadcast", protect, isAdmin, broadcastNotification);
 
 /**
  * @openapi
@@ -959,24 +952,23 @@ router.post(
  *               status: error
  *               message: "Internal server error"
  */
-router.patch("/admin/:userId/suspend", protect, isAdmin, suspendUser)
-
+router.patch("/admin/:userId/suspend", protect, isAdmin, suspendUser);
 
 /**
- * @swagger
- * /user/author/search:
+ * @openapi
+ * /user/authors/search:
  *   get:
- *     summary: Search authors by name or username
- *     description: Search users matching a query against their username or name. Supports pagination and returns basic profile info.
+ *     summary: Search for authors by username or name
+ *     description: Performs a case-insensitive search across user names and usernames with pagination support. Returns empty results if no search query is provided.
  *     tags:
- *       - Users
+ *       - Authors
  *     parameters:
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
  *         required: false
- *         description: Search keyword matching name or username (case-insensitive).
+ *         description: Search query matching username or name.
  *         example: john
  *       - in: query
  *         name: page
@@ -993,13 +985,12 @@ router.patch("/admin/:userId/suspend", protect, isAdmin, suspendUser)
  *           type: integer
  *           default: 20
  *           minimum: 1
- *           maximum: 100
  *         required: false
  *         description: Number of items per page.
  *         example: 20
  *     responses:
  *       200:
- *         description: Successfully retrieved matching authors.
+ *         description: Search results retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -1015,7 +1006,7 @@ router.patch("/admin/:userId/suspend", protect, isAdmin, suspendUser)
  *                     properties:
  *                       _id:
  *                         type: string
- *                         example: 64b8f0a2e1234567890abcde
+ *                         example: 60d5ecb8b5c9c62b3c7c8b45
  *                       username:
  *                         type: string
  *                         example: johndoe
@@ -1025,49 +1016,48 @@ router.patch("/admin/:userId/suspend", protect, isAdmin, suspendUser)
  *                       avatar:
  *                         type: string
  *                         nullable: true
- *                         example: https://res.cloudinary.com/demo/image/upload/v1/avatar.jpg
+ *                         example: https://example.com/avatar.jpg
  *                       bio:
  *                         type: string
  *                         nullable: true
- *                         example: Software Engineer & Tech Blogger
+ *                         example: Software engineer and tech writer.
  *                 currentPage:
  *                   type: integer
  *                   example: 1
  *                 totalPages:
  *                   type: integer
- *                   example: 3
+ *                   example: 1
  *                 totalAuthors:
  *                   type: integer
- *                   example: 45
+ *                   example: 1
  *                 limit:
  *                   type: integer
  *                   example: 20
  *             examples:
- *               SuccessResults:
- *                 summary: Matching authors found
+ *               SuccessWithResults:
+ *                 summary: Search query with matching authors
  *                 value:
  *                   success: true
  *                   authors:
- *                     - _id: "64b8f0a2e1234567890abcde"
+ *                     - _id: "60d5ecb8b5c9c62b3c7c8b45"
  *                       username: "johndoe"
  *                       name: "John Doe"
  *                       avatar: "https://example.com/avatar.jpg"
- *                       bio: "Tech enthusiast and writer"
+ *                       bio: "Software engineer and tech writer."
  *                   currentPage: 1
  *                   totalPages: 1
  *                   totalAuthors: 1
  *                   limit: 20
- *               EmptyResults:
- *                 summary: Empty search string or no matches
+ *               EmptyQueryResponse:
+ *                 summary: Empty search query response
  *                 value:
  *                   success: true
  *                   authors: []
+ *                   totalAuthors: 0
  *                   currentPage: 1
  *                   totalPages: 0
- *                   totalAuthors: 0
- *                   limit: 20
  *       500:
- *         description: Internal Server Error
+ *         description: Internal server error.
  *         content:
  *           application/json:
  *             schema:
@@ -1080,22 +1070,41 @@ router.patch("/admin/:userId/suspend", protect, isAdmin, suspendUser)
  *                   type: string
  *                   example: Internal server error
  */
-router.get("/author/search", protect, searchAuthors)
+router.get("/authors/search", protect, searchAuthors);
 
 
 /**
  * @openapi
  * /user/my-posts:
  *   get:
- *     summary: Get all posts created by the authenticated user
- *     description: Retrieves all blog posts (drafts and published) authored by the currently logged-in user, sorted by newest first.
+ *     summary: Get authenticated user's published blog posts
+ *     description: Fetches a paginated list of published blog posts belonging to the currently authenticated user.
  *     tags:
  *       - Users
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number for pagination.
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *         description: Number of posts to return per page.
+ *         example: 10
  *     responses:
  *       200:
- *         description: User posts retrieved successfully
+ *         description: Successfully retrieved user's published posts.
  *         content:
  *           application/json:
  *             schema:
@@ -1104,20 +1113,77 @@ router.get("/author/search", protect, searchAuthors)
  *                 success:
  *                   type: boolean
  *                   example: true
- *                 posts:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Blog'
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     posts:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             example: 65123abc4567def890123456
+ *                           title:
+ *                             type: string
+ *                             example: My First Blog Post
+ *                           content:
+ *                             type: string
+ *                             example: Content of the blog post...
+ *                           status:
+ *                             type: string
+ *                             example: published
+ *                           author:
+ *                             type: object
+ *                             properties:
+ *                               _id:
+ *                                 type: string
+ *                                 example: 60d5ecb8b5c9c62b3c7c8b45
+ *                               name:
+ *                                 type: string
+ *                                 example: Jane Doe
+ *                               avatar:
+ *                                 type: string
+ *                                 nullable: true
+ *                                 example: https://example.com/avatar.png
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: 2026-03-15T10:30:00.000Z
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: 2026-03-15T10:30:00.000Z
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         totalPosts:
+ *                           type: integer
+ *                           example: 15
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 10
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 2
  *       401:
- *         description: Unauthorized — Authentication required
+ *         description: Unauthorized - missing or invalid authentication token.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *             example:
- *               success: false
- *               status: fail
- *               message: "Unauthorized"
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *       500:
+ *         description: Internal server error.
  */
 router.get("/my-posts", protect, getUserPosts);
 
@@ -1136,26 +1202,45 @@ router.get("/my-posts", protect, getUserPosts);
  *       401:
  *         description: Unauthorized — Authentication required
  */
-router.get('/blog/drafts', protect, getDraft)
+router.get("/blog/drafts", protect, getDraft);
 
 /**
- * @swagger
- * /user/posts/public/{userId}:
+ * @openapi
+ * /posts/public/{userId}:
  *   get:
- *     summary: Get public posts created by a specific user
+ *     summary: Get published blog posts for a specific user
+ *     description: Fetches a paginated list of published blog posts written by a specific user using their user ID.
  *     tags:
- *       - Users
+ *       - Posts
  *     parameters:
  *       - in: path
  *         name: userId
  *         required: true
  *         schema:
  *           type: string
- *         description: MongoDB ObjectId of the post author
- *         example: "65b21d4f8e3f2a1a0c8b4567"
+ *         description: Valid MongoDB ObjectId of the user.
+ *         example: 60d5ecb8b5c9c62b3c7c8b45
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number for pagination.
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *         description: Number of posts to return per page.
+ *         example: 10
  *     responses:
  *       200:
- *         description: Successfully retrieved user's public posts
+ *         description: Successfully retrieved user posts.
  *         content:
  *           application/json:
  *             schema:
@@ -1164,48 +1249,78 @@ router.get('/blog/drafts', protect, getDraft)
  *                 success:
  *                   type: boolean
  *                   example: true
- *                 posts:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       _id:
- *                         type: string
- *                         example: "65c32e5f9e4f3b2b1d9c7890"
- *                       title:
- *                         type: string
- *                         example: "Getting Started with Node.js"
- *                       content:
- *                         type: string
- *                         example: "Here is a complete guide to starting with Express..."
- *                       author:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     posts:
+ *                       type: array
+ *                       items:
  *                         type: object
  *                         properties:
  *                           _id:
  *                             type: string
- *                             example: "65b21d4f8e3f2a1a0c8b4567"
- *                           name:
+ *                             example: 65123abc4567def890123456
+ *                           title:
  *                             type: string
- *                             example: "John Doe"
- *                           avatar:
+ *                             example: Introduction to Web Development
+ *                           content:
  *                             type: string
- *                             example: "https://example.com/avatar.jpg"
- *                       createdAt:
- *                         type: string
- *                         format: date-time
- *                         example: "2026-03-15T10:30:00.000Z"
- *                       updatedAt:
- *                         type: string
- *                         format: date-time
- *                         example: "2026-03-15T10:30:00.000Z"
+ *                             example: Learn the basics of web development...
+ *                           status:
+ *                             type: string
+ *                             example: published
+ *                           author:
+ *                             type: object
+ *                             properties:
+ *                               _id:
+ *                                 type: string
+ *                                 example: 60d5ecb8b5c9c62b3c7c8b45
+ *                               name:
+ *                                 type: string
+ *                                 example: John Doe
+ *                               avatar:
+ *                                 type: string
+ *                                 nullable: true
+ *                                 example: https://example.com/avatar.png
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: 2026-03-15T10:30:00.000Z
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: 2026-03-15T10:30:00.000Z
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         totalPosts:
+ *                           type: integer
+ *                           example: 25
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 10
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 3
  *       400:
- *         description: Invalid User ID format
- *       404:
- *         description: User or posts not found
+ *         description: Invalid user ID format.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Invalid user ID format
  *       500:
- *         description: Internal Server Error
+ *         description: Internal server error.
  */
 router.get("/posts/public/:userId", getPublicUserPosts);
-
 
 export default router;

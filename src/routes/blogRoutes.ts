@@ -15,9 +15,13 @@ import {
 } from "../controllers/bookmarkController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { upload } from "../utils/uploader.js";
-import { isBlogAuthorOrAdmin } from "../middleware/authorizedUser.js";
+import { isAdmin, isBlogAuthorOrAdmin } from "../middleware/authorizedUser.js";
 import { checkSuspension } from "../middleware/authorizedUser.js";
 import { optionalUser } from "../middleware/optionalUser.js";
+import {
+  createCategory,
+  getCategories,
+} from "../controllers/categoryController.js";
 
 const router = Router();
 
@@ -25,9 +29,10 @@ const router = Router();
  * @openapi
  * /blog/post:
  *   post:
- *     summary: Create a blog post
+ *     summary: Create a new blog post
+ *     description: Creates a new blog post as either a draft or published post. Supports image uploading via Cloudinary using multipart/form-data. Published posts require a valid category. Suspended users are restricted from publishing.
  *     tags:
- *       - Blogs
+ *       - Posts
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -39,57 +44,53 @@ const router = Router();
  *             required:
  *               - title
  *               - content
- *               - category
  *             properties:
  *               title:
  *                 type: string
- *                 example: "My First Blog Post"
+ *                 description: Title of the blog post.
+ *                 example: Building Scalable Node.js APIs
  *               content:
  *                 type: string
- *                 example: "This is the content of my blog post."
+ *                 description: Main content of the blog post.
+ *                 example: In this article, we will explore best practices for Express.js...
  *               category:
  *                 type: string
- *                 enum:
- *                   - Technology
- *                   - Programming
- *                   - Web Development
- *                   - Mobile Development
- *                   - Artificial Intelligence
- *                   - Cybersecurity
- *                   - Data Science
- *                   - Business
- *                   - Finance
- *                   - Education
- *                   - Lifestyle
- *                   - Health
- *                   - Fitness
- *                   - Travel
- *                   - Food
- *                   - Entertainment
- *                   - Sports
- *                   - Gaming
- *                   - Movies
- *                   - Music
- *                   - Fashion
- *                   - Science
- *                   - Politics
- *                   - News
- *                   - Opinion
- *                   - Other
- *                 example: "Technology"
+ *                 description: Valid MongoDB ObjectId of the category. Required if status is "published".
+ *                 example: 60d5ecb8b5c9c62b3c7c8b45
  *               status:
  *                 type: string
- *                 enum:
- *                   - draft
- *                   - published
- *                 default: "draft"
- *                 example: "draft"
- *               image:
+ *                 enum: [draft, published]
+ *                 default: draft
+ *                 description: Publication status of the post.
+ *                 example: published
+ *               file:
  *                 type: string
  *                 format: binary
+ *                 description: Cover image file to upload for the post.
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - content
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: Building Scalable Node.js APIs
+ *               content:
+ *                 type: string
+ *                 example: In this article, we will explore best practices for Express.js...
+ *               category:
+ *                 type: string
+ *                 example: 60d5ecb8b5c9c62b3c7c8b45
+ *               status:
+ *                 type: string
+ *                 enum: [draft, published]
+ *                 default: draft
+ *                 example: published
  *     responses:
  *       201:
- *         description: Blog post created successfully
+ *         description: Blog post created successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -103,45 +104,79 @@ const router = Router();
  *                   properties:
  *                     _id:
  *                       type: string
- *                       example: "65f1a2b3c4d5e6f7a8b9c0d1"
+ *                       example: 65123abc4567def890123456
  *                     title:
  *                       type: string
- *                       example: "My First Blog Post"
+ *                       example: Building Scalable Node.js APIs
  *                     content:
  *                       type: string
- *                       example: "This is the content of my blog post."
+ *                       example: In this article, we will explore best practices for Express.js...
  *                     category:
  *                       type: string
- *                       example: "Technology"
- *                     status:
- *                       type: string
- *                       enum:
- *                         - draft
- *                         - published
- *                       example: "draft"
- *                     imageUrl:
- *                       type: string
- *                       example: "https://example.com/image.jpg"
+ *                       nullable: true
+ *                       example: 60d5ecb8b5c9c62b3c7c8b45
  *                     author:
  *                       type: string
- *                       example: "65f1a2b3c4d5e6f7a8b9c0d1"
+ *                       example: 60d5ecb8b5c9c62b3c7c8b11
+ *                     status:
+ *                       type: string
+ *                       enum: [draft, published]
+ *                       example: published
+ *                     imageUrl:
+ *                       type: string
+ *                       nullable: true
+ *                       example: https://res.cloudinary.com/demo/image/upload/sample.jpg
  *                     createdAt:
  *                       type: string
  *                       format: date-time
+ *                       example: 2026-08-18T11:08:20.000Z
  *                     updatedAt:
  *                       type: string
  *                       format: date-time
+ *                       example: 2026-08-18T11:08:20.000Z
  *       400:
- *         description: Title, Content, or Category missing
+ *         description: Bad request - Missing title/content, invalid status, missing required category when publishing, or invalid category ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: A category is required when publishing a post
  *       401:
- *         description: Not authorized
+ *         description: Unauthorized - missing or invalid authentication token.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Not authorized
+ *       403:
+ *         description: Forbidden - Suspended user attempting to publish a post.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Suspended users cannot publish posts
+ *       500:
+ *         description: Internal server error.
  */
-router.post(
-  "/post",
-  protect,
-  upload.single("image"),
-  createBlogPost,
-);
+router.post("/post", protect, upload.single("image"), createBlogPost);
 
 /**
  * @openapi
@@ -335,9 +370,10 @@ router.get("/post/:id", optionalUser, getBlogPost);
  * @openapi
  * /blog/post/{id}:
  *   put:
- *     summary: Update a blog post
+ *     summary: Update an existing blog post
+ *     description: Updates the title, content, category, status, or featured image of a blog post by its ID. Supports multipart form-data for image upload. Suspended users cannot change status to published.
  *     tags:
- *       - Blogs
+ *       - Posts
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -346,9 +382,10 @@ router.get("/post/:id", optionalUser, getBlogPost);
  *         required: true
  *         schema:
  *           type: string
- *         example: "6a70b314cf50f428e7902008"
- *         description: Blog post ID
+ *         description: Valid MongoDB ObjectId of the blog post.
+ *         example: 65123abc4567def890123456
  *     requestBody:
+ *       required: false
  *       content:
  *         multipart/form-data:
  *           schema:
@@ -356,53 +393,45 @@ router.get("/post/:id", optionalUser, getBlogPost);
  *             properties:
  *               title:
  *                 type: string
- *                 example: "Updated Blog Title"
+ *                 description: Updated blog post title.
+ *                 example: Updated Blog Post Title
  *               content:
  *                 type: string
- *                 example: "Updated content of the blog post."
+ *                 description: Updated blog post main content.
+ *                 example: Updated content of the blog post...
  *               category:
  *                 type: string
- *                 enum:
- *                   - Technology
- *                   - Programming
- *                   - AI
- *                   - Business
- *                   - Design
- *                   - Lifestyle
- *                   - Health
- *                   - Education
- *                   - Travel
- *                   - Sports
- *                   - Entertainment
- *                   - News
- *                   - Finance
- *                   - Food
- *                   - Politics
- *                   - Web Development
- *                   - Mobile Development
- *                   - Cybersecurity
- *                   - Data Science
- *                   - Science
- *                   - Movies
- *                   - Games
- *                   - Fashion
- *                   - Opinion
- *                   - Fitness
- *                   - Other
- *                   - Music
- *                 example: "Programming"
+ *                 description: Valid MongoDB ObjectId of the target category.
+ *                 example: 60d5ecb8b5c9c62b3c7c8b45
  *               status:
  *                 type: string
- *                 enum:
- *                   - draft
- *                   - published
- *                 example: "published"
- *               image:
+ *                 enum: [draft, published]
+ *                 description: Publication status of the post.
+ *                 example: published
+ *               file:
  *                 type: string
  *                 format: binary
+ *                 description: Image file to upload as the blog post cover image.
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: Updated Blog Post Title
+ *               content:
+ *                 type: string
+ *                 example: Updated content of the blog post...
+ *               category:
+ *                 type: string
+ *                 example: 60d5ecb8b5c9c62b3c7c8b45
+ *               status:
+ *                 type: string
+ *                 enum: [draft, published]
+ *                 example: published
  *     responses:
  *       200:
- *         description: Blog post updated successfully
+ *         description: Blog post updated successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -416,59 +445,76 @@ router.get("/post/:id", optionalUser, getBlogPost);
  *                   properties:
  *                     _id:
  *                       type: string
- *                       example: "6a70b314cf50f428e7902008"
+ *                       example: 65123abc4567def890123456
  *                     title:
  *                       type: string
- *                       example: "Updated Blog Title"
+ *                       example: Updated Blog Post Title
  *                     content:
  *                       type: string
- *                       example: "Updated content of the blog post."
+ *                       example: Updated content of the blog post...
  *                     category:
  *                       type: string
- *                       example: "Programming"
+ *                       example: 60d5ecb8b5c9c62b3c7c8b45
  *                     status:
  *                       type: string
- *                       enum:
- *                         - draft
- *                         - published
- *                       example: "published"
+ *                       enum: [draft, published]
+ *                       example: published
  *                     imageUrl:
  *                       type: string
- *                       example: "https://example.com/image.jpg"
+ *                       nullable: true
+ *                       example: https://res.cloudinary.com/demo/image/upload/sample.jpg
  *                     author:
  *                       type: string
- *                       example: "65f1a2b3c4d5e6f7a8b9c0d1"
+ *                       example: 60d5ecb8b5c9c62b3c7c8b45
  *                     createdAt:
  *                       type: string
  *                       format: date-time
+ *                       example: 2026-03-15T10:30:00.000Z
  *                     updatedAt:
  *                       type: string
  *                       format: date-time
+ *                       example: 2026-03-15T12:00:00.000Z
  *       400:
- *         description: Invalid blog post ID
- *       401:
- *         description: Authentication required
- *       403:
- *         description: "Forbidden — not the post's author/admin, or the account is suspended"
+ *         description: Validation error (e.g., invalid blog/category ID, empty title/content, or invalid status value).
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *             examples:
- *               AdministratorAccess:
- *                 summary: Not the author or an admin
- *                 value:
- *                   success: false
- *                   status: fail
- *                   message: "Forbidden: administrator access required"
- *               suspended:
- *                 summary: Account is suspended
- *                 value:
- *                   success: false
- *                   status: fail
- *                   message: "Account is currently suspended"
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Title can't be empty
+ *       403:
+ *         description: Forbidden - Suspended user attempting to publish a post.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Suspended users cannot publish posts
  *       404:
- *         description: Blog post not found
+ *         description: Blog post or specified category not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Post not found
+ *       500:
+ *         description: Internal server error.
  */
 router.put(
   "/post/:id",
@@ -704,20 +750,47 @@ router.get("/bookmarks", protect, getBookmarks);
  *       404:
  *         description: Blog post not found
  */
-router.patch("/post/:id/publish", protect, isBlogAuthorOrAdmin, checkSuspension, publishBlogPost);
+router.patch(
+  "/post/:id/publish",
+  protect,
+  isBlogAuthorOrAdmin,
+  checkSuspension,
+  publishBlogPost,
+);
 
 /**
  * @openapi
- * /blog/drafts:
+ * /user/drafts:
  *   get:
- *     summary: Get authenticated user's draft posts
+ *     summary: Get authenticated user's draft blog posts
+ *     description: Fetches a paginated list of draft blog posts created by the currently authenticated user, sorted by last updated date descending.
  *     tags:
- *       - Blogs
+ *       - Posts
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number for pagination.
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *           maximum: 50
+ *         description: Number of drafts to return per page (capped at 50).
+ *         example: 10
  *     responses:
  *       200:
- *         description: Draft posts retrieved successfully
+ *         description: Successfully retrieved user's draft blog posts.
  *         content:
  *           application/json:
  *             schema:
@@ -733,37 +806,241 @@ router.patch("/post/:id/publish", protect, isBlogAuthorOrAdmin, checkSuspension,
  *                     properties:
  *                       _id:
  *                         type: string
- *                         example: "6a70b314cf50f428e7902008"
+ *                         example: 65123abc4567def890123456
  *                       title:
  *                         type: string
- *                         example: "My unfinished blog post"
+ *                         example: Work in Progress - Article Draft
  *                       content:
  *                         type: string
- *                         example: "This is my draft content..."
- *                       category:
- *                         type: string
- *                         example: "Technology"
+ *                         example: Draft content goes here...
  *                       status:
  *                         type: string
- *                         enum:
- *                           - draft
- *                           - published
- *                         example: "draft"
- *                       imageUrl:
- *                         type: string
- *                         example: "https://example.com/image.jpg"
+ *                         example: draft
  *                       author:
  *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             example: 60d5ecb8b5c9c62b3c7c8b45
+ *                           username:
+ *                             type: string
+ *                             example: janedoe
+ *                           name:
+ *                             type: string
+ *                             example: Jane Doe
+ *                           avatar:
+ *                             type: string
+ *                             nullable: true
+ *                             example: https://example.com/avatar.png
+ *                           bio:
+ *                             type: string
+ *                             nullable: true
+ *                             example: Tech enthusiast and writer.
  *                       createdAt:
  *                         type: string
  *                         format: date-time
+ *                         example: 2026-03-15T10:30:00.000Z
  *                       updatedAt:
  *                         type: string
  *                         format: date-time
+ *                         example: 2026-03-15T11:45:00.000Z
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     totalDrafts:
+ *                       type: integer
+ *                       example: 5
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 10
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 1
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized - missing or invalid authentication token.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Not authorized
+ *       500:
+ *         description: Internal server error.
  */
 router.get("/drafts", protect, getMyDrafts);
+
+/**
+ * @openapi
+ * /blog/create-category:
+ *   post:
+ *     summary: Create a new category
+ *     description: Creates a new category with an automatically generated slug. Only accessible by authenticated administrator users.
+ *     tags:
+ *       - Categories
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name of the category.
+ *                 example: Web Development
+ *               description:
+ *                 type: string
+ *                 description: Optional description of the category.
+ *                 example: Articles and resources related to web development technologies.
+ *     responses:
+ *       201:
+ *         description: Category created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Category created successfully
+ *                 category:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       example: 60d5ecb8b5c9c62b3c7c8b45
+ *                     name:
+ *                       type: string
+ *                       example: Web Development
+ *                     slug:
+ *                       type: string
+ *                       example: web-development
+ *                     description:
+ *                       type: string
+ *                       example: Articles and resources related to web development technologies.
+ *                     createdBy:
+ *                       type: string
+ *                       example: 60d5ecb8b5c9c62b3c7c8b11
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: 2026-08-18T11:12:40.000Z
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: 2026-08-18T11:12:40.000Z
+ *       400:
+ *         description: Bad Request - Missing category name or invalid name resulting in an empty slug.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Category name is required
+ *       401:
+ *         description: Unauthorized - Authentication token missing or invalid.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Authentication required
+ *       403:
+ *         description: Forbidden - User is authenticated but does not have the "admin" role.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Only administrators can create categories
+ *       409:
+ *         description: Conflict - A category with the provided name or generated slug already exists.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Category already exists
+ *       500:
+ *         description: Internal server error.
+ */
+router.post("/create-category", protect, isAdmin, createCategory);
+
+/**
+ * @openapi
+ * /blog/get-category:
+ *   get:
+ *     summary: Get all categories
+ *     description: Retrieves a list of all categories sorted alphabetically by name. Publicly accessible endpoint.
+ *     tags:
+ *       - Categories
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved list of categories.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 categories:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: 60d5ecb8b5c9c62b3c7c8b45
+ *                       name:
+ *                         type: string
+ *                         example: Web Development
+ *                       slug:
+ *                         type: string
+ *                         example: web-development
+ *                       description:
+ *                         type: string
+ *                         example: Articles and resources related to web development technologies.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get("/get-category", protect, createCategory);
 
 
 export default router;
