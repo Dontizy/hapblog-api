@@ -30,7 +30,9 @@ export const createCategory = asyncHandler(
 
     const slug = createSlug(normalizedName);
 
-    if (!slug) {     }
+    if (!slug) {
+      throw new AppError("Invalid category name for slug generation", 400);
+    }
 
     const existingCategory = await Category.findOne({
       $or: [{ name: normalizedName }, { slug }],
@@ -63,6 +65,8 @@ export const getCategories = asyncHandler(
       .select("_id name slug description")
       .sort({ name: 1 })
       .lean();
+
+    res.setHeader("Cache-Control", "public, max-age=300, s-maxage=600");
 
     return res.status(200).json({
       success: true,
