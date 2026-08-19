@@ -13,9 +13,13 @@ import { createNotification } from "../utils/createNotification.js";
 import { getReadingTime } from "../utils/readingTime.js";
 import User from "../models/User.js";
 import Category from "../models/Category.js";
+import slugify from "slugify";
 
 export const createBlogPost = asyncHandler(
-  async (req: Request<{}, {}, blogCreateType>, res: Response) => {
+  async (
+    req: Request<{}, {}, blogCreateType>,
+    res: Response
+  ) => {
     const { title, content, category, status } = req.body;
 
     const user = req.user;
@@ -40,7 +44,10 @@ export const createBlogPost = asyncHandler(
 
     // A published post must have a category.
     if (postStatus === "published" && !category) {
-      throw new AppError("A category is required when publishing a post", 400);
+      throw new AppError(
+        "A category is required when publishing a post",
+        400
+      );
     }
 
     // Check suspension before publishing.
@@ -49,7 +56,10 @@ export const createBlogPost = asyncHandler(
       user.suspendedUntil &&
       user.suspendedUntil > new Date()
     ) {
-      throw new AppError("Suspended users cannot publish posts", 403);
+      throw new AppError(
+        "Suspended users cannot publish posts",
+        403
+      );
     }
 
     // Validate category if one was supplied.
@@ -63,16 +73,33 @@ export const createBlogPost = asyncHandler(
       }
     }
 
+    // Generate a unique slug from the title.
+    const baseSlug = slugify(title.trim(), {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
+
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (await Blog.exists({ slug })) {
+      counter++;
+      slug = `${baseSlug}-${counter}`;
+    }
+
     const blogData: CreateBlogDTO = {
       title: title.trim(),
       content,
       category: category ?? null,
+      slug,
       author: user._id,
       status: postStatus,
     };
 
     if (req.file) {
-      const upload = (await uploadToCloudinary(req.file)) as UploadApiResponse;
+      const upload =
+        (await uploadToCloudinary(req.file)) as UploadApiResponse;
 
       blogData.imageUrl = upload.secure_url;
     }
@@ -83,7 +110,7 @@ export const createBlogPost = asyncHandler(
       success: true,
       blog,
     });
-  },
+  }
 );
 
 export const getAllBlogPost = asyncHandler(
@@ -162,54 +189,73 @@ export const getAllBlogPost = asyncHandler(
   },
 );
 
-export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params as { id: string };
+export const getBlogPost = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { slug } = req.params as { slug: string };
 
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid blog id", 400);
+    const userId = req.user?._id;
+
+    const blog = await Blog.findOne({
+      slug,
+      ...(userId
+        ? {
+            $or: [
+              { status: "published" },
+              { author: userId },
+            ],
+          }
+        : {
+            status: "published",
+          }),
+    }).populate(
+      "author",
+      "username name avatar bio"
+    );
+
+    if (!blog) {
+      throw new AppError("Post does not exist", 404);
+    }
+
+    const [commentsCount, user] = await Promise.all([
+      Comment.countDocuments({
+        blog: blog._id,
+      }),
+
+      userId
+        ? User.findById(userId).select("bookmarks")
+        : null,
+    ]);
+
+    const bookmarkedIds = new Set(
+      user?.bookmarks.map((bookmark) =>
+        bookmark.toString()
+      ) ?? []
+    );
+
+    const isLiked =
+      !!userId &&
+      blog.likes.some((like) =>
+        like.equals(userId)
+      );
+
+    const blogData = blog.toObject();
+
+    return res.status(200).json({
+      success: true,
+      blog: {
+        ...blogData,
+        commentsCount,
+        isLiked,
+        isBookmarked: bookmarkedIds.has(
+          blog._id.toString()
+        ),
+        readingTime: getReadingTime(
+          blogData.content
+        ),
+      },
+    });
   }
-
-  const userId = req.user?._id;
-
-  const blog = await Blog.findOne({
-    _id: id,
-    ...(userId
-      ? {
-          $or: [{ status: "published" }, { author: userId }],
-        }
-      : {
-          status: "published",
-        }),
-  }).populate("author", "username name avatar bio");
-
-  if (!blog) {
-    throw new AppError("Post does not exist", 404);
-  }
-
-  const [commentsCount, user] = await Promise.all([
-    Comment.countDocuments({ blog: id }),
-    userId ? User.findById(userId).select("bookmarks") : null,
-  ]);
-
-  const bookmarkedIds = new Set(
-    user?.bookmarks.map((bookmark) => bookmark.toString()) ?? [],
-  );
-
-  const isLiked = !!userId && blog.likes.some((like) => like.equals(userId));
-
-  const blogData = blog.toObject();
-
-  return res.status(200).json({
-    success: true,
-    blog: {
-      ...blogData,
-      commentsCount,
-      isLiked,
-      isBookmarked: bookmarkedIds.has(blog._id.toString()),
-      readingTime: getReadingTime(blogData.content),
-    },
-  });
-});
+);
 
 export const updateBlogPost = asyncHandler(
   async (

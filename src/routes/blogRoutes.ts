@@ -365,7 +365,7 @@ router.get("/posts", optionalUser, getAllBlogPost);
  *       404:
  *         description: Post not found
  */
-router.get("/post/:id", optionalUser, getBlogPost);
+router.get("/post/:slug", optionalUser, getBlogPost);
 /**
  * @openapi
  * /blog/post/{id}:
