@@ -1005,13 +1005,18 @@ router.post("/create-category", protect, isAdmin, createCategory);
  * @openapi
  * /blog/get-category:
  *   get:
- *     summary: Get all categories
- *     description: Retrieves a list of all categories sorted alphabetically by name. Publicly accessible endpoint.
+ *     summary: Retrieve all categories
+ *     description: Fetch a list of all blog categories sorted alphabetically by name. Response is cached for 5 minutes.
  *     tags:
  *       - Categories
  *     responses:
  *       200:
- *         description: Successfully retrieved list of categories.
+ *         description: Categories retrieved successfully.
+ *         headers:
+ *           Cache-Control:
+ *             schema:
+ *               type: string
+ *               example: public, max-age=300, s-maxage=600
  *         content:
  *           application/json:
  *             schema:
@@ -1023,24 +1028,11 @@ router.post("/create-category", protect, isAdmin, createCategory);
  *                 categories:
  *                   type: array
  *                   items:
- *                     type: object
- *                     properties:
- *                       _id:
- *                         type: string
- *                         example: 60d5ecb8b5c9c62b3c7c8b45
- *                       name:
- *                         type: string
- *                         example: Web Development
- *                       slug:
- *                         type: string
- *                         example: web-development
- *                       description:
- *                         type: string
- *                         example: Articles and resources related to web development technologies.
+ *                     $ref: '#/components/schemas/Category'
  *       500:
  *         description: Internal server error.
  */
-router.get("/get-category", protect, createCategory);
+router.get("/get-category", protect, getCategories);
 
 
 export default router;
