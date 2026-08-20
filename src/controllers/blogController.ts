@@ -152,7 +152,7 @@ export const getAllBlogPost = asyncHandler(
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("author", "username name avatar bio")
+        .populate("author", "username name avatar bio").populate("category", "name, _id")
         .populate("commentsCount"),
       Blog.countDocuments(query),
     ]);
@@ -210,7 +210,7 @@ export const getBlogPost = asyncHandler(
     }).populate(
       "author",
       "username name avatar bio"
-    );
+    ).populate("category", "name _id");
 
     if (!blog) {
       throw new AppError("Post does not exist", 404);
