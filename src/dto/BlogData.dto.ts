@@ -1,11 +1,11 @@
-import { Types } from "mongoose"
-import type { BlogCategory } from "../types/blogCategory.js";
+import { Types } from "mongoose";
 
-export interface CreateBlogDTO{
-    title:string;
-    content:string;
-    category:BlogCategory;
-    author:Types.ObjectId;
-    status?: "draft" | "published"
-    imageUrl?:string
+export interface CreateBlogDTO {
+  title: string;
+  content: string;
+  category: string | null;
+  author: Types.ObjectId;
+  status: "draft" | "published";
+  imageUrl?: string;
+  slug: string;
 }

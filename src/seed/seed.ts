@@ -6,7 +6,7 @@ import Blog from "../models/Blog.js";
 import Comment from "../models/Comment.js";
 import Reply from "../models/Reply.js";
 import "dotenv/config";
-import { BLOG_CATEGORIES } from "../types/blogCategory.js";
+
 
 const DB_URI = process.env.DB_URI;
 const hashPassword = async (plainPassword: string) => {
@@ -126,7 +126,7 @@ const seed = async () => {
           max: 12,
         }),
 
-        category: faker.helpers.arrayElement(BLOG_CATEGORIES),
+        // category: faker.helpers.arrayElement(BLOG_CATEGORIES),
 
         author: author._id,
 

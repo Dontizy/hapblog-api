@@ -1,11 +1,11 @@
 import { HydratedDocument, Schema, Types, model } from "mongoose";
 
-
 export interface IBlog {
   title: string;
   content: string;
   imageUrl?: string;
   author: Types.ObjectId;
+  slug: string;
   likes: Types.ObjectId[];
   category?: Types.ObjectId | null;
   status?: "draft" | "published";
@@ -42,7 +42,14 @@ const blogSchema = new Schema<IBlog>(
       enum: ["draft", "published"],
       default: "draft",
     },
-    author: {
+    slug: {
+      type: String,
+      required: [true, "Slug is required"],
+      unique: true,
+      index: true,
+      trim: true,
+    },
+      author: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
