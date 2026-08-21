@@ -445,7 +445,7 @@ export const forgotPassword = asyncHandler(
   async (req: Request, res: Response) => {
     const { identifier } = req.body as { identifier: string };
 
-    if (!identifier) {
+    if (!identifier?.trim()) {
       throw new AppError("Username or email is required", 400);
     }
 
@@ -478,252 +478,113 @@ export const forgotPassword = asyncHandler(
 
     await user.save();
 
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    const clientUrl = process.env.CLIENT_URL;
+    const logoUrl = process.env.HAPBLOG_LOGO_URL;
+
+    if (!clientUrl) {
+      throw new AppError("CLIENT_URL is not configured", 500);
+    }
+
+    if (!logoUrl) {
+      throw new AppError("HAPBLOG_LOGO_URL is not configured", 500);
+    }
+
+    const resetUrl = `${clientUrl}/reset-password/${resetToken}`;
 
     await resend.emails.send({
       from: "Hapblog <onboarding@resend.dev>",
       to: user.email,
-      subject: "Reset Password",
+      subject: "Reset your Hapblog password",
       html: `
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reset your Hapblog password</title>
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset your Hapblog password</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f6f6f6; font-family: Arial, Helvetica, sans-serif; color: #18181b;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f6f6f6; padding: 40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width: 560px; background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 16px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 28px 32px; border-bottom: 1px solid #f0f0f0;">
+              <a href="${clientUrl}" style="display: inline-block; text-decoration: none;">
+                <img src="${logoUrl}" alt="Hapblog" width="140" style="display: block; width: 140px; max-width: 100%; height: auto; border: 0; outline: none; text-decoration: none;" />
+              </a>
+            </td>
+          </tr>
 
-  <body
-    style="
-      margin: 0;
-      padding: 0;
-      background-color: #f6f6f6;
-      font-family: Arial, Helvetica, sans-serif;
-      color: #18181b;
-    "
-  >
-    <table
-      width="100%"
-      cellpadding="0"
-      cellspacing="0"
-      role="presentation"
-      style="background-color: #f6f6f6; padding: 40px 16px;"
-    >
-      <tr>
-        <td align="center">
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 32px 32px;">
+              <h2 style="margin: 0 0 16px; font-size: 26px; line-height: 1.3; font-weight: 700; color: #18181b;">
+                Reset your password
+              </h2>
 
-          <table
-            width="100%"
-            cellpadding="0"
-            cellspacing="0"
-            role="presentation"
-            style="
-              max-width: 560px;
-              background-color: #ffffff;
-              border: 1px solid #e4e4e7;
-              border-radius: 16px;
-              overflow: hidden;
-            "
-          >
+              <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.7; color: #52525b;">
+                Hi ${user.name},
+              </p>
 
-            <!-- Header -->
-            <tr>
-              <td
-                style="
-                  padding: 28px 32px;
-                  border-bottom: 1px solid #f0f0f0;
-                "
-              >
-                <h1
-                  style="
-                    margin: 0;
-                    font-size: 24px;
-                    font-weight: 700;
-                    letter-spacing: -0.5px;
-                    color: #18181b;
-                  "
-                >
-                  Hapblog
-                </h1>
-              </td>
-            </tr>
+              <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.7; color: #52525b;">
+                We received a request to reset the password associated with your Hapblog account.
+              </p>
 
-            <!-- Content -->
-            <tr>
-              <td style="padding: 40px 32px 32px;">
+              <p style="margin: 0 0 28px; font-size: 15px; line-height: 1.7; color: #52525b;">
+                Click the button below to choose a new password. This link will expire in
+                <strong style="color: #18181b;">10 minutes</strong>.
+              </p>
 
-                <h2
-                  style="
-                    margin: 0 0 16px;
-                    font-size: 26px;
-                    line-height: 1.3;
-                    font-weight: 700;
-                    color: #18181b;
-                  "
-                >
-                  Reset your password
-                </h2>
+              <!-- Reset Button -->
+              <table cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom: 28px;">
+                <tr>
+                  <td align="center" style="border-radius: 999px; background-color: #18181b;">
+                    <a href="${resetUrl}" style="display: inline-block; padding: 13px 24px; border-radius: 999px; background-color: #18181b; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none;">
+                      Reset Password
+                    </a>
+                  </td>
+                </tr>
+              </table>
 
-                <p
-                  style="
-                    margin: 0 0 16px;
-                    font-size: 15px;
-                    line-height: 1.7;
-                    color: #52525b;
-                  "
-                >
-                  Hi ${user.name},
+              <!-- Fallback URL -->
+              <p style="margin: 0 0 8px; font-size: 12px; color: #71717a;">
+                If the button doesn't work, copy and paste this link into your browser:
+              </p>
+
+              <p style="margin: 0 0 28px; padding: 12px; background-color: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 12px; line-height: 1.5; word-break: break-all;">
+                <a href="${resetUrl}" style="color: #52525b; text-decoration: none;">
+                  ${resetUrl}
+                </a>
+              </p>
+
+              <!-- Security Notice -->
+              <div style="padding: 16px; background-color: #fafafa; border-radius: 10px;">
+                <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #71717a;">
+                  If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
                 </p>
+              </div>
+            </td>
+          </tr>
 
-                <p
-                  style="
-                    margin: 0 0 16px;
-                    font-size: 15px;
-                    line-height: 1.7;
-                    color: #52525b;
-                  "
-                >
-                  We received a request to reset the password
-                  associated with your Hapblog account.
-                </p>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 32px; background-color: #fafafa; border-top: 1px solid #f0f0f0;">
+              <p style="margin: 0 0 8px; font-size: 12px; line-height: 1.6; color: #a1a1aa; text-align: center;">
+                This is an automated message from Hapblog.
+              </p>
 
-                <p
-                  style="
-                    margin: 0 0 28px;
-                    font-size: 15px;
-                    line-height: 1.7;
-                    color: #52525b;
-                  "
-                >
-                  Click the button below to choose a new password.
-                  This link will expire in
-                  <strong style="color: #18181b;">10 minutes</strong>.
-                </p>
-
-                <!-- Button -->
-                <table
-                  cellpadding="0"
-                  cellspacing="0"
-                  role="presentation"
-                  style="margin-bottom: 28px;"
-                >
-                  <tr>
-                    <td
-                      align="center"
-                      style="
-                        border-radius: 999px;
-                        background-color: #18181b;
-                      "
-                    >
-                      <a
-                        href="${resetUrl}"
-                        style="
-                          display: inline-block;
-                          padding: 13px 24px;
-                          border-radius: 999px;
-                          background-color: #18181b;
-                          color: #ffffff;
-                          font-size: 14px;
-                          font-weight: 600;
-                          text-decoration: none;
-                        "
-                      >
-                        Reset Password
-                      </a>
-                    </td>
-                  </tr>
-                </table>
-
-                <!-- Fallback URL -->
-                <p
-                  style="
-                    margin: 0 0 8px;
-                    font-size: 12px;
-                    color: #71717a;
-                  "
-                >
-                  If the button doesn't work, copy and paste this link
-                  into your browser:
-                </p>
-
-                <p
-                  style="
-                    margin: 0 0 28px;
-                    padding: 12px;
-                    background-color: #fafafa;
-                    border: 1px solid #e4e4e7;
-                    border-radius: 8px;
-                    font-size: 12px;
-                    line-height: 1.5;
-                    word-break: break-all;
-                  "
-                >
-                  <a
-                    href="${resetUrl}"
-                    style="
-                      color: #52525b;
-                      text-decoration: none;
-                    "
-                  >
-                    ${resetUrl}
-                  </a>
-                </p>
-
-                <!-- Security notice -->
-                <div
-                  style="
-                    padding: 16px;
-                    background-color: #fafafa;
-                    border-radius: 10px;
-                  "
-                >
-                  <p
-                    style="
-                      margin: 0;
-                      font-size: 13px;
-                      line-height: 1.6;
-                      color: #71717a;
-                    "
-                  >
-                    If you didn't request a password reset, you can
-                    safely ignore this email. Your password will remain
-                    unchanged.
-                  </p>
-                </div>
-
-              </td>
-            </tr>
-
-            <!-- Footer -->
-            <tr>
-              <td
-                style="
-                  padding: 24px 32px;
-                  background-color: #fafafa;
-                  border-top: 1px solid #f0f0f0;
-                "
-              >
-                <p
-                  style="
-                    margin: 0;
-                    font-size: 12px;
-                    line-height: 1.6;
-                    color: #a1a1aa;
-                    text-align: center;
-                  "
-                >
-                  This is an automated message from Hapblog.
-                  Please don't reply to this email.
-                </p>
-              </td>
-            </tr>
-
-          </table>
-
-        </td>
-      </tr>
-    </table>
-  </body>
+              <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #a1a1aa; text-align: center;">
+                Please don't reply to this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
 </html>
 `,
     });
@@ -732,7 +593,7 @@ export const forgotPassword = asyncHandler(
       success: true,
       message: "Password reset link sent to your email",
     });
-  },
+  }
 );
 
 export const resetPassword = asyncHandler(
