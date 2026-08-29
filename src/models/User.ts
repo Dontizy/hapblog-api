@@ -64,7 +64,7 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: false,
       default:
-        "https://res.cloudinary.com/dxdtdqxse/image/upload/v1778510804/ChatGPT_Image_May_11_2026_03_45_21_PM_zxd9oh.png",
+        "https://res.cloudinary.com/dxdtdqxse/image/upload/v1788041337/file_000000009b5c8210a3ce078150618325-removebg-preview_hgmaxv.png"
     },
     bio: {
       type: String,
