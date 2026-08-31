@@ -8,4 +8,6 @@ export interface CreateBlogDTO {
   status: "draft" | "published";
   imageUrl?: string;
   slug: string;
+  contentImagePublicIds?: string[];
+  imagePublicId?: string;
 }

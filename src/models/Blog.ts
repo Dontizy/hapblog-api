@@ -8,6 +8,8 @@ export interface IBlog {
   slug: string;
   likes: Types.ObjectId[];
   category?: Types.ObjectId | null;
+  contentImagePublicIds: string[];
+  imagePublicId?: string;
   status?: "draft" | "published";
   createdAt: Date;
   updatedAt: Date;
@@ -49,7 +51,7 @@ const blogSchema = new Schema<IBlog>(
       index: true,
       trim: true,
     },
-      author: {
+    author: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -58,6 +60,14 @@ const blogSchema = new Schema<IBlog>(
     category: {
       type: Schema.Types.ObjectId,
       ref: "Category",
+      default: null,
+    },
+    contentImagePublicIds: {
+      type: [String],
+      default: [],
+    },
+    imagePublicId: {
+      type: String,
       default: null,
     },
   },

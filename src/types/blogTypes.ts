@@ -5,6 +5,7 @@ export type blogCreateType = {
   category?:string | undefined;
   content: string;
   status?: "draft" | "published";
+  contentImagePublicIds?: string[];
 };
 
 export type updateBlogType = {
@@ -12,4 +13,5 @@ export type updateBlogType = {
   content?: string;
   status?: "draft" | "published";
   category?: string | undefined;
+  contentImagePublicIds?: string[];
 };
