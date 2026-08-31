@@ -14,10 +14,20 @@ import { getReadingTime } from "../utils/readingTime.js";
 import User from "../models/User.js";
 import Category from "../models/Category.js";
 import slugify from "slugify";
+import { CLOUDINARY_FOLDERS } from "../utils/cloudinaryFolders.js";
 
 export const createBlogPost = asyncHandler(
-  async (req: Request<{}, {}, blogCreateType>, res: Response) => {
-    const { title, content, category, status } = req.body;
+  async (
+    req: Request<{}, {}, blogCreateType>,
+    res: Response,
+  ) => {
+    const {
+      title,
+      content,
+      category,
+      status,
+      contentImagePublicIds,
+    } = req.body;
 
     const user = req.user;
 
@@ -41,7 +51,10 @@ export const createBlogPost = asyncHandler(
 
     // A published post must have a category.
     if (postStatus === "published" && !category) {
-      throw new AppError("A category is required when publishing a post", 400);
+      throw new AppError(
+        "A category is required when publishing a post",
+        400,
+      );
     }
 
     // Check suspension before publishing.
@@ -50,17 +63,24 @@ export const createBlogPost = asyncHandler(
       user.suspendedUntil &&
       user.suspendedUntil > new Date()
     ) {
-      throw new AppError("Suspended users cannot publish posts", 403);
+      throw new AppError(
+        "Suspended users cannot publish posts",
+        403,
+      );
     }
 
     // Validate category if one was supplied.
     if (category) {
+      if (!mongoose.isValidObjectId(category)) {
+        throw new AppError("Invalid category", 400);
+      }
+
       const categoryExists = await Category.exists({
         _id: category,
       });
 
       if (!categoryExists) {
-        throw new AppError("Invalid category", 400);
+        throw new AppError("Category not found", 404);
       }
     }
 
@@ -71,6 +91,13 @@ export const createBlogPost = asyncHandler(
       trim: true,
     });
 
+    if (!baseSlug) {
+      throw new AppError(
+        "Title cannot be used to generate a slug",
+        400,
+      );
+    }
+
     let slug = baseSlug;
     let counter = 1;
 
@@ -79,6 +106,14 @@ export const createBlogPost = asyncHandler(
       slug = `${baseSlug}-${counter}`;
     }
 
+    // Validate content image IDs.
+    const contentImages = Array.isArray(contentImagePublicIds)
+      ? contentImagePublicIds.filter(
+          (id): id is string =>
+            typeof id === "string" && id.trim().length > 0,
+        )
+      : [];
+
     const blogData: CreateBlogDTO = {
       title: title.trim(),
       content,
@@ -86,12 +121,18 @@ export const createBlogPost = asyncHandler(
       slug,
       author: user._id,
       status: postStatus,
+      contentImagePublicIds: contentImagePublicIds ?? [],
     };
 
+    // Upload blog cover.
     if (req.file) {
-      const upload = (await uploadToCloudinary(req.file)) as UploadApiResponse;
+      const upload = (await uploadToCloudinary(
+        req.file,
+        CLOUDINARY_FOLDERS.BLOG_COVERS,
+      )) as UploadApiResponse;
 
       blogData.imageUrl = upload.secure_url;
+      blogData.imagePublicId = upload.public_id;
     }
 
     const blog = await Blog.create(blogData);
@@ -233,7 +274,6 @@ export const getBlogPost = asyncHandler(async (req: Request, res: Response) => {
 export const updateBlogPost = asyncHandler(
   async (req: Request<{}, {}, updateBlogType>, res: Response) => {
     const { id } = req.params as { id: string };
-
     const { title, content, category, status } = req.body;
 
     if (!mongoose.isValidObjectId(id)) {
@@ -301,9 +341,12 @@ export const updateBlogPost = asyncHandler(
       blog.status = status;
     }
 
-    // Update image
+    // Update cover image
     if (req.file) {
-      const upload = (await uploadToCloudinary(req.file)) as UploadApiResponse;
+      const upload = (await uploadToCloudinary(
+        req.file,
+        CLOUDINARY_FOLDERS.BLOG_COVERS,
+      )) as UploadApiResponse;
 
       blog.imageUrl = upload.secure_url;
     }
@@ -458,6 +501,31 @@ export const publishBlogPost = asyncHandler(
       success: true,
       message: "Post published successfully",
       blog,
+    });
+  },
+);
+
+export const uploadContentImage = asyncHandler(
+  async (req: Request, res: Response) => {
+    const user = req.user;
+
+    if (!user) {
+      throw new AppError("Not authorized", 401);
+    }
+
+    if (!req.file) {
+      throw new AppError("Please upload an image", 400);
+    }
+
+    const upload = (await uploadToCloudinary(
+      req.file,
+      CLOUDINARY_FOLDERS.BLOG_CONTENT,
+    )) as UploadApiResponse;
+
+    return res.status(200).json({
+      success: true,
+      url: upload.secure_url,
+      publicId: upload.public_id,
     });
   },
 );

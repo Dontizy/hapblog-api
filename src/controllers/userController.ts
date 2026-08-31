@@ -15,6 +15,8 @@ import crypto from "crypto";
 import { resend } from "../config/resend.js";
 import { createNotification } from "../utils/createNotification.js";
 import { PopulatedFollower } from "../types/PopulatedFollower.js";
+import { CLOUDINARY_FOLDERS } from "../utils/cloudinaryFolders.js";
+
 
 const hashPassword = async (plainPassword: string) => {
   const salt = await bcrypt.genSalt(10);
@@ -426,10 +428,16 @@ export const avatarUpdate = asyncHandler(
     if (!req.file) {
       throw new AppError("Please upload an image", 400);
     }
+
     if (user.avatarPublicId) {
       await cloudinary.uploader.destroy(user.avatarPublicId);
     }
-    const upload = (await uploadToCloudinary(req.file)) as UploadApiResponse;
+
+    const upload = (await uploadToCloudinary(
+      req.file,
+      CLOUDINARY_FOLDERS.USER_AVATAR,
+    )) as UploadApiResponse;
+
     user.avatar = upload.secure_url;
     user.avatarPublicId = upload.public_id;
 
@@ -593,7 +601,7 @@ export const forgotPassword = asyncHandler(
       success: true,
       message: "Password reset link sent to your email",
     });
-  }
+  },
 );
 
 export const resetPassword = asyncHandler(

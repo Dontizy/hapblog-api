@@ -8,6 +8,7 @@ import {
   toggleLikePost,
   publishBlogPost,
   getMyDrafts,
+  uploadContentImage,
 } from "../controllers/blogController.js";
 import {
   toggleBookmark,
@@ -432,5 +433,75 @@ router.post("/create-category", protect, isAdmin, createCategory);
  *         description: Internal server error.
  */
 router.get("/get-category", protect, getCategories);
+
+/**
+ * @swagger
+ * /blog/upload-content-image:
+ *   post:
+ *     summary: Upload an image for blog content
+ *     description: Uploads an inline blog image to Cloudinary. The returned URL can be inserted into Tiptap content, while the publicId can be stored with the blog for later image cleanup.
+ *     tags:
+ *       - Blog
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - image
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: The image to upload.
+ *     responses:
+ *       200:
+ *         description: Image uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 url:
+ *                   type: string
+ *                   format: uri
+ *                   example: https://res.cloudinary.com/example/image/upload/v1234567890/Hapblog/blog-content/example.jpg
+ *                 publicId:
+ *                   type: string
+ *                   example: Hapblog/blog-content/example
+ *
+ *       400:
+ *         description: No image was provided
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *
+ *       500:
+ *         description: Failed to upload image
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post(
+  "/upload-content-image",
+  protect,
+  upload.single("image"),
+  uploadContentImage,
+);
 
 export default router;
