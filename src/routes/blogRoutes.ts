@@ -104,27 +104,108 @@ router.post("/post", protect, upload.single("image"), createBlogPost);
  * /blog/posts:
  *   get:
  *     summary: Get all published blog posts
+ *     description: >
+ *       Returns a paginated list of published blog posts.
+ *       Posts are sorted by creation date, newest first.
+ *       Search can be used to find posts by title, content,
+ *       category name, or category slug.
  *     tags:
  *       - Blogs
  *     parameters:
  *       - in: query
  *         name: search
+ *         required: false
  *         schema:
  *           type: string
- *         description: Search by title, content, or category
+ *         description: Search by title, content, category name, or category slug.
+ *
  *       - in: query
  *         name: page
+ *         required: false
  *         schema:
  *           type: integer
+ *           minimum: 1
  *           default: 1
+ *         description: Page number.
+ *
  *       - in: query
  *         name: limit
+ *         required: false
  *         schema:
  *           type: integer
+ *           minimum: 1
  *           default: 10
+ *         description: Number of blog posts to return per page.
+ *
  *     responses:
  *       200:
  *         description: Blog posts retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 blogs:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       slug:
+ *                         type: string
+ *                       content:
+ *                         type: string
+ *                       imageUrl:
+ *                         type: string
+ *                         nullable: true
+ *                       status:
+ *                         type: string
+ *                         example: published
+ *                       author:
+ *                         type: object
+ *                         nullable: true
+ *                       category:
+ *                         type: object
+ *                         nullable: true
+ *                       commentsCount:
+ *                         type: integer
+ *                         example: 5
+ *                       isLiked:
+ *                         type: boolean
+ *                         example: false
+ *                       isBookmarked:
+ *                         type: boolean
+ *                         example: false
+ *                       readingTime:
+ *                         type: integer
+ *                         example: 4
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                 currentPage:
+ *                   type: integer
+ *                   example: 1
+ *                 totalPages:
+ *                   type: integer
+ *                   example: 5
+ *                 totalBlogs:
+ *                   type: integer
+ *                   example: 47
+ *                 limit:
+ *                   type: integer
+ *                   example: 10
+ *
+ *       500:
+ *         description: Internal server error
  */
 router.get("/posts", optionalUser, getAllBlogPost);
 
