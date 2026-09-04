@@ -17,17 +17,9 @@ import slugify from "slugify";
 import { CLOUDINARY_FOLDERS } from "../utils/cloudinaryFolders.js";
 
 export const createBlogPost = asyncHandler(
-  async (
-    req: Request<{}, {}, blogCreateType>,
-    res: Response,
-  ) => {
-    const {
-      title,
-      content,
-      category,
-      status,
-      contentImagePublicIds,
-    } = req.body;
+  async (req: Request<{}, {}, blogCreateType>, res: Response) => {
+    const { title, content, category, status, contentImagePublicIds } =
+      req.body;
 
     const user = req.user;
 
@@ -51,10 +43,7 @@ export const createBlogPost = asyncHandler(
 
     // A published post must have a category.
     if (postStatus === "published" && !category) {
-      throw new AppError(
-        "A category is required when publishing a post",
-        400,
-      );
+      throw new AppError("A category is required when publishing a post", 400);
     }
 
     // Check suspension before publishing.
@@ -63,10 +52,7 @@ export const createBlogPost = asyncHandler(
       user.suspendedUntil &&
       user.suspendedUntil > new Date()
     ) {
-      throw new AppError(
-        "Suspended users cannot publish posts",
-        403,
-      );
+      throw new AppError("Suspended users cannot publish posts", 403);
     }
 
     // Validate category if one was supplied.
@@ -92,10 +78,7 @@ export const createBlogPost = asyncHandler(
     });
 
     if (!baseSlug) {
-      throw new AppError(
-        "Title cannot be used to generate a slug",
-        400,
-      );
+      throw new AppError("Title cannot be used to generate a slug", 400);
     }
 
     let slug = baseSlug;
@@ -109,8 +92,7 @@ export const createBlogPost = asyncHandler(
     // Validate content image IDs.
     const contentImages = Array.isArray(contentImagePublicIds)
       ? contentImagePublicIds.filter(
-          (id): id is string =>
-            typeof id === "string" && id.trim().length > 0,
+          (id): id is string => typeof id === "string" && id.trim().length > 0,
         )
       : [];
 
@@ -149,6 +131,7 @@ export const getAllBlogPost = asyncHandler(
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.max(1, Number(req.query.limit) || 10);
     const skip = (page - 1) * limit;
+
     const search = String(req.query.search || "").trim();
 
     const query: Record<string, unknown> = {
@@ -156,25 +139,18 @@ export const getAllBlogPost = asyncHandler(
     };
 
     if (search) {
+      const searchRegex = new RegExp(search, "i");
+
+      const matchingCategories = await Category.find({
+        $or: [{ name: searchRegex }, { slug: searchRegex }],
+      }).select("_id");
+
+      const categoryIds = matchingCategories.map((category) => category._id);
+
       query.$or = [
-        {
-          title: {
-            $regex: search,
-            $options: "i",
-          },
-        },
-        {
-          content: {
-            $regex: search,
-            $options: "i",
-          },
-        },
-        {
-          category: {
-            $regex: search,
-            $options: "i",
-          },
-        },
+        { title: searchRegex },
+        { content: searchRegex },
+        { category: { $in: categoryIds } },
       ];
     }
 
